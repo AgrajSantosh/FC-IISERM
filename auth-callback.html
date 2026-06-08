@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IISER FC · Setting up your account…</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:#0a0e1a;color:#f0f4ff;font-family:'Barlow',sans-serif;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;}
+.card{background:#0f1628;border:1px solid #1e2d55;border-radius:16px;padding:2rem;width:100%;max-width:380px;text-align:center;}
+.logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;margin-bottom:4px;}
+.logo span{color:#4d8fff;}
+.sub{font-size:12px;color:#8898b8;letter-spacing:1px;text-transform:uppercase;margin-bottom:2rem;}
+.status{font-size:14px;color:#8898b8;margin-bottom:1.5rem;line-height:1.6;}
+.status.error{color:#e83a3a;}
+.status.success{color:#22c55e;}
+.form-label{display:block;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:#8898b8;margin-bottom:5px;text-align:left;}
+.form-input{width:100%;background:#162040;border:1px solid #253660;border-radius:8px;padding:10px 12px;color:#f0f4ff;font-size:14px;outline:none;margin-bottom:14px;}
+.form-input:focus{border-color:#4d8fff;}
+.btn{width:100%;background:#1a6cf5;border:none;border-radius:8px;padding:12px;color:#fff;font-size:15px;font-weight:700;cursor:pointer;font-family:'Barlow',sans-serif;}
+.btn:disabled{opacity:.5;cursor:not-allowed;}
+.spinner{width:32px;height:32px;border:3px solid #1e2d55;border-top-color:#4d8fff;border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 1rem;}
+@keyframes spin{to{transform:rotate(360deg);}}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">IISER <span>FC</span></div>
+  <div class="sub">Admin Portal</div>
+
+  <!-- Step 1: Loading -->
+  <div id="step-loading">
+    <div class="spinner"></div>
+    <div class="status">Verifying your invite link…</div>
+  </div>
+
+  <!-- Step 2: Set password -->
+  <div id="step-password" style="display:none;">
+    <div class="status">Your invite is valid! Set a password to activate your account.</div>
+    <label class="form-label">New Password</label>
+    <input class="form-input" type="password" id="new-password" placeholder="At least 8 characters" minlength="8">
+    <label class="form-label">Confirm Password</label>
+    <input class="form-input" type="password" id="confirm-password" placeholder="Repeat password">
+    <div class="status error" id="pw-error" style="display:none;margin-bottom:12px;"></div>
+    <button class="btn" id="set-pw-btn" onclick="setPassword()">Activate Account</button>
+  </div>
+
+  <!-- Step 3: Done -->
+  <div id="step-done" style="display:none;">
+    <div style="font-size:48px;margin-bottom:12px;">✅</div>
+    <div class="status success">Account activated! Redirecting to admin panel…</div>
+  </div>
+
+  <!-- Error -->
+  <div id="step-error" style="display:none;">
+    <div style="font-size:48px;margin-bottom:12px;">❌</div>
+    <div class="status error" id="error-msg">Something went wrong.</div>
+    <div style="margin-top:1rem;">
+      <a href="/admin.html" style="color:#4d8fff;font-size:13px;">Go to Admin Panel</a>
+    </div>
+  </div>
+</div>
+
+<script>
+const SUPABASE_URL = 'https://xxycceiosiabvoqtoghj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4eWNjZWlvc2lhYnZvcXRvZ2hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTYyNTUsImV4cCI6MjA5NjQzMjI1NX0.Yj-ZvbBr8-Y-IR8IUhz6qV8s_9cn9yyyokdCzypEhQA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+function show(id) {
+  ['step-loading','step-password','step-done','step-error'].forEach(s => {
+    document.getElementById(s).style.display = s === id ? 'block' : 'none';
+  });
+}
+
+async function init() {
+  // Supabase puts the token in the URL hash or query params
+  // Handle both formats
+  const hash = window.location.hash;
+  const params = new URLSearchParams(window.location.search);
+
+  // Try to get session from URL (invite link contains access_token)
+  const { data, error } = await sb.auth.getSession();
+
+  if (data?.session) {
+    // Already have a session - they just need to set password
+    show('step-password');
+    return;
+  }
+
+  // Try exchanging the code/token from URL
+  if (hash || params.get('code') || params.get('token')) {
+    const { data: exchData, error: exchError } = await sb.auth.exchangeCodeForSession(
+      params.get('code') || hash
+    );
+    if (exchError || !exchData?.session) {
+      // Try the hash-based flow
+      const { data: hashData, error: hashError } = await sb.auth.getSession();
+      if (hashData?.session) {
+        show('step-password');
+        return;
+      }
+      show('step-error');
+      document.getElementById('error-msg').textContent =
+        'Invite link is invalid or expired. Ask the admin to send a new invite.';
+      return;
+    }
+    show('step-password');
+    return;
+  }
+
+  // No token found
+  show('step-error');
+  document.getElementById('error-msg').textContent =
+    'No invite token found. Make sure you clicked the full link from your email.';
+}
+
+async function setPassword() {
+  const pw = document.getElementById('new-password').value;
+  const confirm = document.getElementById('confirm-password').value;
+  const errEl = document.getElementById('pw-error');
+  const btn = document.getElementById('set-pw-btn');
+  errEl.style.display = 'none';
+
+  if (pw.length < 8) {
+    errEl.textContent = 'Password must be at least 8 characters.';
+    errEl.style.display = 'block';
+    return;
+  }
+  if (pw !== confirm) {
+    errEl.textContent = 'Passwords do not match.';
+    errEl.style.display = 'block';
+    return;
+  }
+
+  btn.disabled = true;
+  btn.textContent = 'Activating…';
+
+  const { error } = await sb.auth.updateUser({ password: pw });
+
+  if (error) {
+    errEl.textContent = 'Error: ' + error.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Activate Account';
+    return;
+  }
+
+  show('step-done');
+  setTimeout(() => {
+    window.location.href = '/admin.html';
+  }, 2000);
+}
+
+// Handle Supabase auth state changes (invite links fire this)
+sb.auth.onAuthStateChange((event, session) => {
+  if (event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') {
+    if (session) show('step-password');
+  }
+});
+
+// Run on load
+window.addEventListener('load', init);
+</script>
+</body>
+</html>
