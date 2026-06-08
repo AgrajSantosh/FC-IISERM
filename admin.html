@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>IISER FC · Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+:root{
+  --navy:#0a0e1a;--navy2:#0f1628;--navy3:#162040;--navy4:#1e2d55;
+  --blue:#1a6cf5;--blue-l:#4d8fff;--silver:#c8d4e8;--silver2:#8898b8;
+  --white:#f0f4ff;--red:#e83a3a;--gold:#f0b429;--green:#22c55e;
+  --border:#1e2d55;--border2:#253660;--purple:#a855f7;--orange:#f97316;
+}
+body{background:var(--navy);color:var(--white);font-family:'Barlow',sans-serif;min-height:100vh;}
+.auth-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.5rem;}
+.auth-card{background:var(--navy2);border:1px solid var(--border);border-radius:16px;padding:2rem;width:100%;max-width:360px;}
+.auth-logo{font-family:'Bebas Neue',sans-serif;font-size:28px;letter-spacing:3px;text-align:center;margin-bottom:4px;}
+.auth-logo span{color:var(--blue-l);}
+.auth-sub{text-align:center;font-size:12px;color:var(--silver2);margin-bottom:2rem;font-family:'Barlow Condensed',sans-serif;letter-spacing:1px;text-transform:uppercase;}
+.auth-label{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--silver2);margin-bottom:5px;display:block;}
+.auth-input{width:100%;background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:10px 12px;color:var(--white);font-family:'Barlow',sans-serif;font-size:14px;outline:none;margin-bottom:14px;}
+.auth-input:focus{border-color:var(--blue-l);}
+.auth-btn{width:100%;background:var(--blue);border:none;border-radius:8px;padding:12px;color:#fff;font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:1px;cursor:pointer;}
+.auth-btn:disabled{opacity:.5;cursor:not-allowed;}
+.auth-error{background:rgba(232,58,58,.15);border:1px solid rgba(232,58,58,.4);border-radius:6px;padding:8px 12px;font-size:12px;color:var(--red);margin-bottom:12px;display:none;}
+.app{display:none;}.app.visible{display:block;}
+.app-nav{background:var(--navy2);border-bottom:2px solid var(--blue);height:52px;display:flex;align-items:center;justify-content:space-between;padding:0 1rem;position:sticky;top:0;z-index:50;}
+.app-logo{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;}
+.app-logo span{color:var(--blue-l);}
+.role-badge{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;padding:2px 8px;border-radius:3px;}
+.role-badge.admin{background:rgba(168,85,247,.2);color:var(--purple);}
+.role-badge.coordinator{background:rgba(26,108,245,.2);color:var(--blue-l);}
+.role-badge.referee{background:rgba(34,197,94,.15);color:var(--green);}
+.logout-btn{background:none;border:1px solid var(--border2);border-radius:6px;color:var(--silver2);font-size:12px;padding:4px 10px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-weight:700;}
+.app-body{display:flex;min-height:calc(100vh - 52px);}
+.sidebar{width:210px;background:var(--navy2);border-right:1px solid var(--border);flex-shrink:0;padding:1rem 0;}
+.sidebar-section{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--silver2);padding:4px 16px 8px;margin-top:10px;}
+.sidebar-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;color:var(--silver2);transition:all .15s;border-left:3px solid transparent;}
+.sidebar-item:hover{color:var(--white);background:rgba(26,108,245,.08);}
+.sidebar-item.active{color:var(--blue-l);border-left-color:var(--blue);background:rgba(26,108,245,.1);}
+.sidebar-item i{font-size:16px;flex-shrink:0;}
+.content{flex:1;padding:1.5rem;overflow-y:auto;}
+.mobile-nav{display:none;overflow-x:auto;background:var(--navy2);border-bottom:1px solid var(--border);scrollbar-width:none;}
+.mobile-nav::-webkit-scrollbar{display:none;}
+.mobile-nav-btn{flex-shrink:0;padding:10px 14px;font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;color:var(--silver2);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap;}
+.mobile-nav-btn.active{color:var(--blue-l);border-bottom-color:var(--blue);}
+@media(max-width:640px){.sidebar{display:none;}.mobile-nav{display:flex;}.content{padding:1rem;}}
+.panel{display:none;}.panel.active{display:block;}
+.panel-title{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:2px;margin-bottom:4px;}
+.panel-sub{font-size:12px;color:var(--silver2);margin-bottom:1.5rem;}
+.card{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:1.2rem;margin-bottom:14px;}
+.card-title{font-family:'Barlow Condensed',sans-serif;font-size:15px;font-weight:700;letter-spacing:.5px;margin-bottom:12px;display:flex;align-items:center;gap:8px;}
+.card-title i{color:var(--blue-l);}
+.form-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;}
+.form-group{display:flex;flex-direction:column;gap:4px;flex:1;min-width:100px;}
+.form-label{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--silver2);}
+.form-input,.form-select,.form-textarea{background:var(--navy3);border:1px solid var(--border2);border-radius:7px;padding:9px 11px;color:var(--white);font-family:'Barlow',sans-serif;font-size:13px;outline:none;width:100%;}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--blue-l);}
+.form-select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238898b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 10px center;padding-right:28px;}
+.form-textarea{resize:vertical;min-height:70px;}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:7px;font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;letter-spacing:.5px;cursor:pointer;border:none;transition:opacity .15s;}
+.btn:hover{opacity:.85;}.btn:disabled{opacity:.4;cursor:not-allowed;}
+.btn-primary{background:var(--blue);color:#fff;}
+.btn-success{background:var(--green);color:#fff;}
+.btn-danger{background:var(--red);color:#fff;}
+.btn-ghost{background:var(--navy3);color:var(--silver);border:1px solid var(--border2);}
+.btn-gold{background:var(--gold);color:var(--navy);}
+.btn-sm{padding:5px 10px;font-size:12px;}
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin-bottom:1.5rem;}
+.stat-card{background:var(--navy2);border:1px solid var(--border);border-radius:10px;padding:1rem;text-align:center;}
+.stat-num{font-family:'Bebas Neue',sans-serif;font-size:32px;line-height:1;}
+.stat-lbl{font-size:10px;color:var(--silver2);text-transform:uppercase;letter-spacing:.8px;margin-top:2px;font-family:'Barlow Condensed',sans-serif;font-weight:700;}
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{font-family:'Barlow Condensed',sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--silver2);padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);}
+.data-table td{padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:middle;}
+.data-table tr:last-child td{border-bottom:none;}
+.data-table tr:hover td{background:rgba(26,108,245,.04);}
+.score-editor{display:flex;align-items:center;gap:12px;background:var(--navy3);border-radius:10px;padding:1rem 1.2rem;margin-bottom:14px;}
+.score-team{flex:1;text-align:center;}
+.score-team-name{font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;margin-bottom:8px;}
+.score-controls{display:flex;align-items:center;gap:8px;justify-content:center;}
+.score-btn{width:36px;height:36px;border-radius:8px;border:none;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:opacity .15s;}
+.score-btn.plus{background:var(--green);color:#fff;}.score-btn.minus{background:var(--red);color:#fff;}
+.score-display{font-family:'Bebas Neue',sans-serif;font-size:52px;line-height:1;min-width:40px;text-align:center;}
+.score-sep{font-family:'Bebas Neue',sans-serif;font-size:36px;color:var(--silver2);}
+.clock-display{background:var(--navy3);border-radius:12px;padding:1.2rem;text-align:center;margin-bottom:14px;border:2px solid var(--border);}
+.clock-time{font-family:'Bebas Neue',sans-serif;font-size:60px;line-height:1;letter-spacing:4px;}
+.clock-time.live{color:var(--red);}.clock-time.ht{color:var(--gold);}.clock-time.ft{color:var(--green);}.clock-time.upcoming{color:var(--silver2);}
+.clock-label{font-family:'Barlow Condensed',sans-serif;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--silver2);margin-top:4px;}
+.mini-stats{display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-bottom:10px;}
+.mini-stat{background:var(--navy3);border-radius:6px;padding:6px 8px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:4px;}
+.mini-stat-home{font-family:'Bebas Neue',sans-serif;font-size:18px;text-align:right;color:var(--blue-l);}
+.mini-stat-lbl{font-size:9px;color:var(--silver2);text-transform:uppercase;letter-spacing:.5px;text-align:center;font-family:'Barlow Condensed',sans-serif;font-weight:700;}
+.mini-stat-away{font-family:'Bebas Neue',sans-serif;font-size:18px;text-align:left;color:var(--red);}
+.tl-event-row{background:var(--navy3);border-radius:8px;padding:.75rem;margin-bottom:6px;display:flex;align-items:flex-start;gap:10px;position:relative;}
+.tl-event-row:hover .tl-delete{opacity:1;}
+.tl-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;margin-top:2px;}
+.tl-icon.goal{background:var(--green);}.tl-icon.yellow{background:var(--gold);}.tl-icon.red{background:var(--red);}
+.tl-icon.save{background:var(--silver2);}.tl-icon.corner{background:var(--navy4);border:1px solid var(--border2);}
+.tl-icon.freekick{background:var(--orange);}.tl-icon.shot,.tl-icon.shot_on_target{background:var(--blue);}
+.tl-icon.offside{background:#64748b;}.tl-icon.foul{background:#7c3aed;}.tl-icon.highlight{background:var(--purple);}
+.tl-icon.ko,.tl-icon.ht,.tl-icon.ft,.tl-icon.stoppage,.tl-icon.so{background:var(--navy4);border:1px solid var(--silver2);}
+.tl-body{flex:1;}
+.tl-title{font-family:'Barlow Condensed',sans-serif;font-size:13px;font-weight:700;}
+.tl-detail{font-size:11px;color:var(--silver2);margin-top:2px;}
+.tl-time{font-family:'Bebas Neue',sans-serif;font-size:13px;color:var(--blue-l);white-space:nowrap;}
+.tl-delete{opacity:0;position:absolute;right:8px;top:8px;background:rgba(232,58,58,.15);border:none;border-radius:4px;color:var(--red);cursor:pointer;padding:3px 6px;font-size:11px;transition:opacity .15s;}
+.badge{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.8px;text-transform:uppercase;padding:2px 7px;border-radius:3px;}
+.badge.live{background:rgba(232,58,58,.2);color:var(--red);}
+.badge.upcoming{background:rgba(240,180,41,.15);color:var(--gold);}
+.badge.ft{background:rgba(34,197,94,.12);color:var(--green);}
+.badge.ht{background:rgba(240,180,41,.15);color:var(--gold);}
+.badge.admin-role{background:rgba(168,85,247,.2);color:var(--purple);}
+.badge.coord-role{background:rgba(26,108,245,.2);color:var(--blue-l);}
+.badge.ref-role{background:rgba(34,197,94,.15);color:var(--green);}
+.tag{display:inline-block;font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:.8px;padding:2px 8px;border-radius:3px;text-transform:uppercase;}
+.tag.pos-gk{background:rgba(240,180,41,.2);color:var(--gold);}
+.tag.pos-def{background:rgba(26,108,245,.18);color:var(--blue-l);}
+.tag.pos-mid{background:rgba(34,197,94,.15);color:var(--green);}
+.tag.pos-fwd{background:rgba(232,58,58,.18);color:var(--red);}
+.match-banner{background:var(--navy3);border:2px solid var(--border);border-radius:10px;padding:1.2rem;margin-bottom:14px;text-align:center;}
+.match-banner.live{border-color:var(--red);}.match-banner.upcoming{border-color:var(--gold);}
+.match-banner.ht{border-color:var(--gold);}.match-banner.ft{border-color:var(--green);}
+.banner-status{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:6px;}
+.banner-sub{font-size:12px;color:var(--silver2);margin-bottom:12px;}
+.banner-btns{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;}
+.live-dot-sm{width:8px;height:8px;background:var(--red);border-radius:50%;display:inline-block;animation:blink 1s infinite;margin-right:4px;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:0;}}
+.edit-modal-overlay{position:fixed;inset:0;background:rgba(5,8,18,.9);z-index:200;display:none;align-items:center;justify-content:center;padding:1rem;}
+.edit-modal-overlay.open{display:flex;}
+.edit-modal{background:var(--navy2);border:1px solid var(--border);border-radius:14px;padding:1.5rem;width:100%;max-width:520px;max-height:90vh;overflow-y:auto;}
+.edit-modal-title{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:2px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;}
+.edit-modal-close{background:none;border:none;color:var(--silver2);font-size:20px;cursor:pointer;}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--navy3);border:1px solid var(--border2);border-radius:8px;padding:10px 18px;font-family:'Barlow Condensed',sans-serif;font-size:14px;font-weight:700;letter-spacing:.5px;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap;}
+.toast.show{opacity:1;}.toast.success{border-color:var(--green);color:var(--green);}.toast.error{border-color:var(--red);color:var(--red);}
+.empty-panel{text-align:center;padding:2rem 1rem;color:var(--silver2);}
+.empty-panel i{font-size:36px;display:block;margin-bottom:8px;opacity:.4;}
+.empty-panel b{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:2px;display:block;margin-bottom:6px;color:var(--silver);}
+.bracket-wrap{overflow-x:auto;padding-bottom:8px;}
+.bracket{display:flex;gap:10px;min-width:300px;}
+.b-round{display:flex;flex-direction:column;gap:6px;}
+.b-round-title{font-family:'Barlow Condensed',sans-serif;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--silver2);margin-bottom:3px;text-align:center;}
+.b-match{background:var(--navy2);border:1px solid var(--border);border-radius:6px;overflow:hidden;min-width:120px;cursor:pointer;}
+.b-team{padding:6px 10px;font-size:11px;font-family:'Barlow Condensed',sans-serif;font-weight:700;display:flex;justify-content:space-between;align-items:center;gap:4px;}
+.b-team:first-child{border-bottom:1px solid var(--border);}
+.b-team.winner{color:var(--blue-l);}.b-team.tbd{opacity:.35;}
+.divider{height:1px;background:var(--border);margin:1rem 0;}
+</style>
+</head>
+<body>
+
+<!-- AUTH -->
+<div class="auth-screen" id="auth-screen">
+  <div class="auth-card">
+    <div class="auth-logo">IISER <span>FC</span></div>
+    <div class="auth-sub">Admin Portal</div>
+    <div class="auth-error" id="auth-error"></div>
+    <label class="auth-label">Email</label>
+    <input class="auth-input" type="email" id="auth-email" placeholder="you@iisermohali.ac.in">
+    <label class="auth-label">Password</label>
+    <input class="auth-input" type="password" id="auth-password" placeholder="••••••••">
+    <button class="auth-btn" id="login-btn" onclick="doLogin()">Sign In</button>
+    <div style="margin-top:12px;text-align:center;font-size:11px;color:var(--silver2);">Access restricted to authorised admins only.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div class="app" id="app">
+  <nav class="app-nav">
+    <div class="app-logo">IISER <span>FC</span> <span style="font-size:11px;color:var(--silver2);font-family:Barlow Condensed,sans-serif;font-weight:700;letter-spacing:1px;">ADMIN</span></div>
+    <div style="display:flex;align-items:center;gap:8px;">
+      <span class="role-badge" id="role-badge"></span>
+      <span style="font-size:12px;color:var(--silver2);" id="user-email-display"></span>
+      <button class="logout-btn" onclick="doLogout()">Sign out</button>
+    </div>
+  </nav>
+  <div class="mobile-nav" id="mobile-nav"></div>
+  <div class="app-body">
+    <div class="sidebar" id="sidebar"></div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="panel active" id="panel-dashboard">
+        <div class="panel-title">Dashboard</div>
+        <div class="panel-sub" id="dashboard-sub">Welcome back</div>
+        <div class="stats-row">
+          <div class="stat-card"><div class="stat-num" id="stat-live" style="color:var(--red);">—</div><div class="stat-lbl">Live</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-upcoming" style="color:var(--gold);">—</div><div class="stat-lbl">Upcoming</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-matches">—</div><div class="stat-lbl">Matches</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-teams">—</div><div class="stat-lbl">Teams</div></div>
+          <div class="stat-card"><div class="stat-num" id="stat-players">—</div><div class="stat-lbl">Players</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-bolt"></i>Quick Actions</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px;">
+            <button class="btn btn-primary" onclick="showPanel('live')"><i class="ti ti-ball-football"></i>Live Editor</button>
+            <button class="btn btn-ghost" onclick="showPanel('matches')"><i class="ti ti-plus"></i>New Match</button>
+            <button class="btn btn-ghost" onclick="showPanel('news')"><i class="ti ti-news"></i>Post News</button>
+            <button class="btn btn-ghost" onclick="showPanel('players')"><i class="ti ti-user-plus"></i>Add Player</button>
+          </div>
+        </div>
+        <div class="card"><div class="card-title"><i class="ti ti-ball-football"></i>Live Now</div><div id="dash-live"><div class="empty-panel"><i class="ti ti-loader"></i><b>Loading</b></div></div></div>
+        <div class="card"><div class="card-title"><i class="ti ti-calendar"></i>Today</div><div id="dash-today"><div class="empty-panel"><i class="ti ti-loader"></i><b>Loading</b></div></div></div>
+        <div class="card"><div class="card-title"><i class="ti ti-history"></i>Recent Results</div><div id="dash-results"><div class="empty-panel"><i class="ti ti-loader"></i><b>Loading</b></div></div></div>
+      </div>
+
+      <!-- LIVE EDITOR -->
+      <div class="panel" id="panel-live">
+        <div class="panel-title">Live Editor</div>
+        <div class="panel-sub">Select a scheduled match → Go Live → add events in real time</div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-selector"></i>Select Match</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;">
+              <label class="form-label">Scheduled / Active Matches</label>
+              <select class="form-select" id="live-match-select" onchange="loadLiveMatch()">
+                <option value="">— Select a match —</option>
+              </select>
+            </div>
+          </div>
+          <div id="no-match-msg" style="color:var(--silver2);font-size:13px;margin-top:8px;">No scheduled matches found. Create one in Matches first.</div>
+        </div>
+        <div class="match-banner upcoming" id="match-banner" style="display:none;">
+          <div class="banner-status" id="banner-status">Not Started</div>
+          <div class="banner-sub" id="banner-sub">Press Go Live when the match kicks off</div>
+          <div class="banner-btns" id="banner-btns"></div>
+        </div>
+        <div id="live-match-ui" style="display:none;">
+          <div class="score-editor">
+            <div class="score-team">
+              <div class="score-team-name" id="live-home-name">Home</div>
+              <div class="score-controls">
+                <button class="score-btn minus" onclick="adjustScore('home',-1)">−</button>
+                <div class="score-display" id="live-home-score">0</div>
+                <button class="score-btn plus" onclick="adjustScore('home',1)">+</button>
+              </div>
+            </div>
+            <div class="score-sep">–</div>
+            <div class="score-team">
+              <div class="score-team-name" id="live-away-name">Away</div>
+              <div class="score-controls">
+                <button class="score-btn minus" onclick="adjustScore('away',-1)">−</button>
+                <div class="score-display" id="live-away-score">0</div>
+                <button class="score-btn plus" onclick="adjustScore('away',1)">+</button>
+              </div>
+            </div>
+          </div>
+          <div class="clock-display">
+            <div class="clock-time upcoming" id="clock-display">00'</div>
+            <div class="clock-label" id="clock-label">Not Started</div>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="ti ti-chart-bar"></i>Live Stats <span style="font-size:11px;color:var(--silver2);font-weight:400;font-family:Barlow,sans-serif;">— auto from events</span></div>
+            <div class="mini-stats" id="mini-stats"></div>
+          </div>
+          <div class="card">
+            <div class="card-title"><i class="ti ti-plus"></i>Add Event</div>
+            <div class="form-row">
+              <div class="form-group">
+                <label class="form-label">Event Type</label>
+                <select class="form-select" id="tl-type" onchange="updateEventForm()">
+                  <optgroup label="Scoring"><option value="goal">⚽ Goal</option></optgroup>
+                  <optgroup label="Discipline">
+                    <option value="yellow">🟨 Yellow Card</option>
+                    <option value="red">🟥 Red Card</option>
+                    <option value="foul">🟣 Foul</option>
+                  </optgroup>
+                  <optgroup label="Set Pieces">
+                    <option value="freekick">🟠 Free Kick</option>
+                    <option value="corner">📐 Corner</option>
+                  </optgroup>
+                  <optgroup label="Attacking">
+                    <option value="shot">🎯 Shot</option>
+                    <option value="shot_on_target">🎯 Shot on Target</option>
+                    <option value="offside">🚩 Offside</option>
+                  </optgroup>
+                  <optgroup label="GK"><option value="save">🧤 Save</option></optgroup>
+                  <optgroup label="Other">
+                    <option value="sub">🔄 Substitution</option>
+                    <option value="highlight">🎬 Highlight</option>
+                    <option value="injury">🩹 Injury</option>
+                  </optgroup>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Team</label>
+                <select class="form-select" id="tl-team" onchange="loadTeamPlayers()">
+                  <option value="home" id="tl-team-home">Home</option>
+                  <option value="away" id="tl-team-away">Away</option>
+                  <option value="">— No team</option>
+                </select>
+              </div>
+            </div>
+            <div id="fields-goal">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Scorer</label><div id="goal-scorer-wrap"><select class="form-select" id="goal-scorer"><option value="">— Select —</option></select></div></div>
+                <div class="form-group"><label class="form-label">Assist by</label><div id="goal-assist-wrap"><select class="form-select" id="goal-assist"><option value="">— None —</option></select></div></div>
+                <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="goal-type"><option value="">Open Play</option><option value="penalty">Penalty</option><option value="freekick">Free Kick</option><option value="header">Header</option><option value="own_goal">Own Goal</option></select></div>
+              </div>
+            </div>
+            <div id="fields-card" style="display:none;">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Player</label><div id="card-player-wrap"><select class="form-select" id="card-player"><option value="">— Select —</option></select></div></div>
+                <div class="form-group"><label class="form-label">Reason</label><input class="form-input" id="card-reason" placeholder="e.g. Reckless tackle"></div>
+              </div>
+            </div>
+            <div id="fields-freekick" style="display:none;">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Taken by</label><div id="fk-taker-wrap"><select class="form-select" id="fk-taker"><option value="">— Select —</option></select></div></div>
+                <div class="form-group"><label class="form-label">Outcome</label><select class="form-select" id="fk-outcome"><option>Saved</option><option>Blocked</option><option>Wide / Over</option><option>GOAL!</option><option>On Target</option></select></div>
+              </div>
+            </div>
+            <div id="fields-shot" style="display:none;">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Player</label><div id="shot-player-wrap"><select class="form-select" id="shot-player"><option value="">— Select —</option></select></div></div>
+                <div class="form-group"><label class="form-label">Outcome</label><select class="form-select" id="shot-outcome"><option>Saved</option><option>Blocked</option><option>Wide / Over</option><option>Hit Post</option></select></div>
+              </div>
+            </div>
+            <div id="fields-save" style="display:none;">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Goalkeeper</label><div id="save-gk-wrap"><select class="form-select" id="save-gk"><option value="">— Select GK —</option></select></div></div>
+                <div class="form-group"><label class="form-label">Saved from</label><input class="form-input" id="save-from" placeholder="Penalty / Shot / Header"></div>
+              </div>
+            </div>
+            <div id="fields-sub" style="display:none;">
+              <div class="form-row">
+                <div class="form-group"><label class="form-label">Player Off</label><div id="sub-off-wrap"><select class="form-select" id="sub-off"><option value="">— Select —</option></select></div></div>
+                <div class="form-group"><label class="form-label">Player On</label><input class="form-input" id="sub-on" placeholder="Player name"></div>
+              </div>
+            </div>
+            <div id="fields-highlight" style="display:none;">
+              <div class="form-row"><div class="form-group" style="flex:2;"><label class="form-label">Description</label><input class="form-input" id="hl-desc" placeholder="Incredible save…"></div></div>
+              <div class="form-row"><div class="form-group"><label class="form-label">Video URL (optional)</label><input class="form-input" id="hl-url" placeholder="https://…"></div></div>
+            </div>
+            <div id="fields-generic" style="display:none;">
+              <div class="form-row"><div class="form-group"><label class="form-label">Detail</label><input class="form-input" id="generic-detail" placeholder="Brief description…"></div></div>
+            </div>
+            <div style="display:flex;gap:8px;align-items:center;margin:8px 0 10px;">
+              <span style="font-family:Barlow Condensed,sans-serif;font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--silver2);">Minute:</span>
+              <span style="font-family:Bebas Neue,sans-serif;font-size:20px;color:var(--blue-l);" id="event-minute-display">00'</span>
+              <span style="font-size:11px;color:var(--silver2);">(auto from clock)</span>
+            </div>
+            <button class="btn btn-primary" onclick="addEvent()"><i class="ti ti-plus"></i>Add Event</button>
+          </div>
+          <div class="card">
+            <div class="card-title" style="justify-content:space-between;">
+              <span><i class="ti ti-list"></i>Match Timeline</span>
+              <div style="display:flex;gap:6px;">
+                <button class="btn btn-ghost btn-sm" onclick="undoLastEvent()" title="Undo last event"><i class="ti ti-arrow-back-up"></i>Undo</button>
+                <button class="btn btn-danger btn-sm" onclick="resetMatch()" title="Reset all events and score"><i class="ti ti-refresh"></i>Reset</button>
+              </div>
+            </div>
+            <div id="live-timeline-list"><div style="color:var(--silver2);font-size:13px;text-align:center;padding:1rem;">No events yet</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- MATCHES -->
+      <div class="panel" id="panel-matches">
+        <div class="panel-title">Matches</div><div class="panel-sub">Create and manage all matches</div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-plus"></i>Create Match</div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Tournament</label><select class="form-select" id="nm-tournament"><option value="">— Select —</option></select></div>
+            <div class="form-group"><label class="form-label">Stage</label><select class="form-select" id="nm-stage"><option>Round Robin</option><option>Quarter Final</option><option>Semi Final</option><option>Final</option><option>Friendly</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Home Team</label><select class="form-select" id="nm-home"><option value="">— Select —</option></select></div>
+            <div class="form-group"><label class="form-label">Away Team</label><select class="form-select" id="nm-away"><option value="">— Select —</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="nm-date"></div>
+            <div class="form-group"><label class="form-label">Time</label><input class="form-input" type="time" value="16:00" id="nm-time"></div>
+            <div class="form-group"><label class="form-label">Venue</label><input class="form-input" placeholder="Main Ground" id="nm-venue"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Referee</label><input class="form-input" id="nm-ref" placeholder="Ajay Sir"></div>
+            <div class="form-group"><label class="form-label">Friendly?</label><select class="form-select" id="nm-friendly"><option value="false">No</option><option value="true">Yes</option></select></div>
+          </div>
+          <button class="btn btn-primary" onclick="createMatch()"><i class="ti ti-calendar-plus"></i>Create Match</button>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-list"></i>All Matches</div>
+          <table class="data-table"><thead><tr><th>Match</th><th>Date</th><th>Status</th><th>Score</th><th>Actions</th></tr></thead>
+          <tbody id="matches-tbody"><tr><td colspan="5" style="text-align:center;color:var(--silver2);padding:1rem;">Loading…</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- TOURNAMENTS -->
+      <div class="panel" id="panel-tournaments">
+        <div class="panel-title">Tournaments</div><div class="panel-sub">Create and manage tournaments</div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-plus"></i>Create Tournament</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label class="form-label">Name</label><input class="form-input" id="nt-name" placeholder="Autumn Cup 2025"></div>
+            <div class="form-group"><label class="form-label">Format</label><select class="form-select" id="nt-format"><option>Round Robin + KO</option><option>Knockout Only</option><option>Round Robin Only</option><option>Friendly Series</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Start Date</label><input class="form-input" type="date" id="nt-start"></div>
+            <div class="form-group"><label class="form-label">End Date</label><input class="form-input" type="date" id="nt-end"></div>
+            <div class="form-group"><label class="form-label">Teams</label><input class="form-input" type="number" placeholder="8" id="nt-teams"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Description</label><textarea class="form-textarea" id="nt-desc" placeholder="Tell fans what to expect…"></textarea></div>
+          <button class="btn btn-primary" onclick="createTournament()"><i class="ti ti-trophy"></i>Create</button>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-list"></i>All Tournaments</div>
+          <table class="data-table"><thead><tr><th>Tournament</th><th>Teams</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="tournaments-tbody"><tr><td colspan="4" style="text-align:center;color:var(--silver2);padding:1rem;">Loading…</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- TABLES & BRACKETS -->
+      <div class="panel" id="panel-standings">
+        <div class="panel-title">Tables & Brackets</div><div class="panel-sub">Manage points tables and knockout brackets</div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-selector"></i>Tournament</div>
+          <select class="form-select" id="st-sel" onchange="renderStandingsContent(this.value)" style="margin-bottom:10px;"><option value="">— Select —</option></select>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-ghost" onclick="addGroupModal()"><i class="ti ti-plus"></i>Add Table</button>
+            <button class="btn btn-ghost" onclick="addBracketModal()"><i class="ti ti-tournament"></i>Add Bracket Match</button>
+          </div>
+        </div>
+        <div id="standings-content"><div class="empty-panel"><i class="ti ti-table"></i><b>Select a Tournament</b></div></div>
+      </div>
+
+      <!-- HISTORY -->
+      <div class="panel" id="panel-history">
+        <div class="panel-title">Match History</div><div class="panel-sub">All completed matches</div>
+        <div class="card">
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="hist-type" onchange="loadHistory()"><option value="">All</option><option value="false">Tournament</option><option value="true">Friendly</option></select></div>
+            <div class="form-group"><label class="form-label">Tournament</label><select class="form-select" id="hist-tour" onchange="loadHistory()"><option value="">All</option></select></div>
+          </div>
+        </div>
+        <div id="history-content"><div class="empty-panel"><i class="ti ti-loader"></i><b>Loading</b></div></div>
+      </div>
+
+      <!-- TEAMS -->
+      <div class="panel" id="panel-teams">
+        <div class="panel-title">Teams</div><div class="panel-sub">Add and manage team profiles</div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-plus"></i>Add Team</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label class="form-label">Team Name</label><input class="form-input" id="nt2-name" placeholder="BS Hostel FC"></div>
+            <div class="form-group"><label class="form-label">Code</label><input class="form-input" id="nt2-code" placeholder="BS" maxlength="4"></div>
+            <div class="form-group"><label class="form-label">Type</label><select class="form-select" id="nt2-type"><option value="hostel">Hostel</option><option value="batch">Batch</option><option value="mixed">Mixed</option><option value="external">External</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Founded</label><input class="form-input" type="number" id="nt2-founded" placeholder="2022"></div>
+            <div class="form-group"><label class="form-label">Captain</label><input class="form-input" id="nt2-captain"></div>
+            <div class="form-group"><label class="form-label">Badge BG</label><input class="form-input" type="color" id="nt2-bg" value="#0d2a5c" style="padding:4px;height:42px;"></div>
+            <div class="form-group"><label class="form-label">Badge Text</label><input class="form-input" type="color" id="nt2-col" value="#7ab0f5" style="padding:4px;height:42px;"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Bio</label><textarea class="form-textarea" id="nt2-bio" placeholder="Short description…"></textarea></div>
+          <button class="btn btn-primary" onclick="addTeam()"><i class="ti ti-shirt"></i>Add Team</button>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-list"></i>All Teams</div>
+          <table class="data-table"><thead><tr><th>Team</th><th>Type</th><th>Captain</th><th>Actions</th></tr></thead>
+          <tbody id="teams-tbody"><tr><td colspan="4" style="text-align:center;color:var(--silver2);padding:1rem;">Loading…</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- PLAYERS -->
+      <div class="panel" id="panel-players">
+        <div class="panel-title">Players</div><div class="panel-sub">Add and manage player profiles</div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-user-plus"></i>Add Player</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label class="form-label">Full Name</label><input class="form-input" id="np-name" placeholder="Arjun Kumar"></div>
+            <div class="form-group"><label class="form-label">Team</label><select class="form-select" id="np-team"><option value="">— No team —</option></select></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Position</label><select class="form-select" id="np-pos"><option>GK</option><option>DEF</option><option>MID</option><option>FWD</option></select></div>
+            <div class="form-group"><label class="form-label">Batch</label><select class="form-select" id="np-batch"><option>2021</option><option>2022</option><option>2023</option><option>2024</option><option>2025</option></select></div>
+            <div class="form-group"><label class="form-label">Jersey #</label><input class="form-input" type="number" id="np-jersey" placeholder="9"></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label class="form-label">Goals</label><input class="form-input" type="number" id="np-goals" value="0"></div>
+            <div class="form-group"><label class="form-label">Assists</label><input class="form-input" type="number" id="np-assists" value="0"></div>
+            <div class="form-group"><label class="form-label">Matches</label><input class="form-input" type="number" id="np-matches" value="0"></div>
+            <div class="form-group"><label class="form-label">Yellows</label><input class="form-input" type="number" id="np-yellows" value="0"></div>
+            <div class="form-group"><label class="form-label">Reds</label><input class="form-input" type="number" id="np-reds" value="0"></div>
+          </div>
+          <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Bio</label><textarea class="form-textarea" id="np-bio"></textarea></div>
+          <button class="btn btn-primary" onclick="addPlayer()"><i class="ti ti-user-plus"></i>Add Player</button>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-list"></i>All Players</div>
+          <div style="display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap;">
+            <select class="form-select" style="flex:1;min-width:120px;" id="p-filter-team" onchange="renderPlayersTable()"><option value="">All Teams</option></select>
+            <select class="form-select" style="flex:1;min-width:100px;" id="p-filter-pos" onchange="renderPlayersTable()"><option value="">All Positions</option><option>GK</option><option>DEF</option><option>MID</option><option>FWD</option></select>
+          </div>
+          <table class="data-table"><thead><tr><th>Player</th><th>Team</th><th>Pos</th><th>G</th><th>A</th><th>MP</th><th>Y/R</th><th>Actions</th></tr></thead>
+          <tbody id="players-tbody"><tr><td colspan="8" style="text-align:center;color:var(--silver2);padding:1rem;">Loading…</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- NEWS -->
+      <div class="panel" id="panel-news">
+        <div class="panel-title">News</div><div class="panel-sub">Write match reports, previews and announcements</div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-pencil"></i>New Post</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label class="form-label">Headline</label><input class="form-input" id="nn-headline" placeholder="BS Hostel book semi-final spot in thriller"></div>
+            <div class="form-group"><label class="form-label">Tag</label><select class="form-select" id="nn-tag"><option>Match Report</option><option>Match Preview</option><option>Announcement</option><option>Squad News</option><option>Friendly</option></select></div>
+          </div>
+          <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Body</label><textarea class="form-textarea" style="min-height:120px;" id="nn-body" placeholder="Write the article…"></textarea></div>
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="publishNews()"><i class="ti ti-send"></i>Publish</button>
+            <button class="btn btn-ghost" onclick="saveDraft()"><i class="ti ti-device-floppy"></i>Save Draft</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-list"></i>All Posts</div>
+          <table class="data-table"><thead><tr><th>Headline</th><th>Tag</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead>
+          <tbody id="news-tbody"><tr><td colspan="5" style="text-align:center;color:var(--silver2);padding:1rem;">Loading…</td></tr></tbody></table>
+        </div>
+      </div>
+
+      <!-- USER MANAGEMENT -->
+      <div class="panel" id="panel-users">
+        <div class="panel-title">User Management</div><div class="panel-sub">Invite admins and manage access — Admin only</div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-user-plus"></i>Invite Admin</div>
+          <div class="form-row">
+            <div class="form-group" style="flex:2;"><label class="form-label">Email Address</label><input class="form-input" id="invite-email" placeholder="coordinator@iisermohali.ac.in"></div>
+            <div class="form-group"><label class="form-label">Role</label>
+              <select class="form-select" id="invite-role" onchange="toggleMatchAssign()">
+                <option value="super_admin">Admin — full access</option>
+                <option value="coordinator" selected>Coordinator — all except users</option>
+                <option value="match_admin">Referee — live editor only</option>
+              </select>
+            </div>
+          </div>
+          <div id="assign-match-row" style="display:none;" class="form-row">
+            <div class="form-group"><label class="form-label">Assign to Match (Referee)</label><select class="form-select" id="assign-match-sel"><option value="">— Any —</option></select></div>
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+            <button class="btn btn-primary" onclick="inviteAdmin()"><i class="ti ti-send"></i>Add Admin</button>
+            <span style="font-size:11px;color:var(--silver2);">They'll need to sign up at the admin portal with this email.</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title"><i class="ti ti-users"></i>Current Admins</div>
+          <table class="data-table"><thead><tr><th>Email</th><th>Role</th><th>Assigned</th><th>Actions</th></tr></thead>
+          <tbody id="users-tbody"><tr><td colspan="4" style="text-align:center;color:var(--silver2);padding:1rem;">Loading…</td></tr></tbody></table>
+        </div>
+        <div style="margin-top:12px;background:rgba(26,108,245,.08);border:1px solid rgba(26,108,245,.2);border-radius:8px;padding:12px;">
+          <div style="font-family:Barlow Condensed,sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--blue-l);margin-bottom:6px;">ROLE PERMISSIONS</div>
+          <div style="font-size:12px;color:var(--silver2);line-height:1.8;">
+            <b style="color:var(--purple);">Admin</b> — Full access including User Management<br>
+            <b style="color:var(--blue-l);">Coordinator</b> — All panels except User Management<br>
+            <b style="color:var(--green);">Referee</b> — Live Editor only
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="edit-modal-overlay" id="edit-modal-overlay">
+  <div class="edit-modal">
+    <div class="edit-modal-title"><span id="edit-modal-title"></span><button class="edit-modal-close" onclick="closeModal()"><i class="ti ti-x"></i></button></div>
+    <div id="edit-modal-body"></div>
+    <div style="display:flex;gap:8px;margin-top:1rem;">
+      <button class="btn btn-success" onclick="saveModal()"><i class="ti ti-check"></i>Save</button>
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const SUPABASE_URL = 'https://xxycceiosiabvoqtoghj.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inh4eWNjZWlvc2lhYnZvcXRvZ2hqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA4NTYyNTUsImV4cCI6MjA5NjQzMjI1NX0.Yj-ZvbBr8-Y-IR8IUhz6qV8s_9cn9yyyokdCzypEhQA';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let currentUser=null, currentRole=null, currentMatchId=null;
+let liveHomeScore=0, liveAwayScore=0;
+let clockInterval=null, clockSeconds=0, clockHalf=0, matchStatus='upcoming';
+let timelineEvents=[], homePlayers=[], awayPlayers=[], modalSaveFn=null;
+let autoStats={home:{goals:0,shots:0,shotsOnTarget:0,corners:0,offsides:0,fouls:0,saves:0,freekicks:0,yellows:0,reds:0},away:{goals:0,shots:0,shotsOnTarget:0,corners:0,offsides:0,fouls:0,saves:0,freekicks:0,yellows:0,reds:0}};
+
+const ROLE_LABELS={super_admin:'Admin',coordinator:'Coordinator',match_admin:'Referee'};
+const ROLE_CLASSES={super_admin:'admin',coordinator:'coordinator',match_admin:'referee'};
+const ROLE_PANELS={
+  super_admin:['dashboard','live','matches','tournaments','standings','history','teams','players','news','users'],
+  coordinator:['dashboard','live','matches','tournaments','standings','history','teams','players','news'],
+  match_admin:['live']
+};
+
+async function doLogin(){
+  const email=document.getElementById('auth-email').value.trim();
+  const pass=document.getElementById('auth-password').value;
+  const btn=document.getElementById('login-btn');
+  const err=document.getElementById('auth-error');
+  err.style.display='none';
+  if(!email||!pass){err.textContent='Enter email and password.';err.style.display='block';return;}
+  btn.disabled=true;btn.textContent='Signing in…';
+  try{
+    const {data,error}=await sb.auth.signInWithPassword({email,password:pass});
+    if(error) throw error;
+    const {data:adminData,error:ae}=await sb.from('admins').select('role,assigned_match_id').eq('user_id',data.user.id).single();
+    if(ae||!adminData) throw new Error('No admin record found. Contact a super admin.');
+    currentRole=adminData.role;
+    currentUser={id:data.user.id,email:data.user.email};
+    onLogin();
+  }catch(e){err.textContent=e.message;err.style.display='block';}
+  finally{btn.disabled=false;btn.textContent='Sign In';}
+}
+
+function onLogin(){
+  document.getElementById('auth-screen').style.display='none';
+  document.getElementById('app').classList.add('visible');
+  document.getElementById('user-email-display').textContent=currentUser.email;
+  const rb=document.getElementById('role-badge');
+  rb.textContent=ROLE_LABELS[currentRole]||currentRole;
+  rb.className='role-badge '+(ROLE_CLASSES[currentRole]||'');
+  document.getElementById('dashboard-sub').textContent=`Welcome back, ${currentUser.email.split('@')[0]}. ${new Date().toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'})}`;
+  buildNav();loadAllData();
+}
+
+async function doLogout(){
+  await sb.auth.signOut();
+  document.getElementById('auth-screen').style.display='flex';
+  document.getElementById('app').classList.remove('visible');
+  stopClock();
+}
+document.getElementById('auth-password').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+
+function buildNav(){
+  const allowed=ROLE_PANELS[currentRole]||[];
+  const items=[
+    {id:'dashboard',icon:'ti-dashboard',label:'Dashboard',section:'Live'},
+    {id:'live',icon:'ti-ball-football',label:'Live Editor',section:''},
+    {id:'matches',icon:'ti-calendar-event',label:'Matches',section:'Content'},
+    {id:'tournaments',icon:'ti-trophy',label:'Tournaments',section:''},
+    {id:'standings',icon:'ti-table',label:'Tables & Brackets',section:''},
+    {id:'history',icon:'ti-history',label:'History',section:''},
+    {id:'teams',icon:'ti-shirt',label:'Teams',section:''},
+    {id:'players',icon:'ti-user',label:'Players',section:''},
+    {id:'news',icon:'ti-news',label:'News',section:''},
+    {id:'users',icon:'ti-users',label:'User Management',section:'Admin'},
+  ];
+  const sidebar=document.getElementById('sidebar');
+  const mobileNav=document.getElementById('mobile-nav');
+  let sh='',mh='',lastSection='';
+  items.forEach(item=>{
+    if(!allowed.includes(item.id)) return;
+    if(item.section&&item.section!==lastSection){sh+=`<div class="sidebar-section">${item.section}</div>`;lastSection=item.section;}
+    sh+=`<div class="sidebar-item" id="si-${item.id}" onclick="showPanel('${item.id}')"><i class="ti ${item.icon}"></i>${item.label}</div>`;
+    mh+=`<button class="mobile-nav-btn" id="mn-${item.id}" onclick="showPanel('${item.id}')">${item.label}</button>`;
+  });
+  sidebar.innerHTML=sh;mobileNav.innerHTML=mh;
+  showPanel(allowed[0]||'live');
+}
+
+function showPanel(name){
+  const allowed=ROLE_PANELS[currentRole]||[];
+  if(!allowed.includes(name)) return;
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.sidebar-item,.mobile-nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+name)?.classList.add('active');
+  document.getElementById('si-'+name)?.classList.add('active');
+  document.getElementById('mn-'+name)?.classList.add('active');
+  window.scrollTo(0,0);
+}
+
+async function loadAllData(){
+  await Promise.all([
+    loadDashboard(),renderMatchesTable(),renderTournamentsTable(),
+    renderTeamsTable(),renderPlayersTable(),renderNewsTable(),
+    renderUsersTable(),populateMatchSelect(),populateDropdowns(),
+    loadHistory(),
+  ]);
+}
+
+async function loadDashboard(){
+  const [lR,uR,mR,tR,pR]=await Promise.all([
+    sb.from('matches').select('id',{count:'exact',head:true}).eq('status','live'),
+    sb.from('matches').select('id',{count:'exact',head:true}).eq('status','upcoming'),
+    sb.from('matches').select('id',{count:'exact',head:true}),
+    sb.from('teams').select('id',{count:'exact',head:true}),
+    sb.from('players').select('id',{count:'exact',head:true}),
+  ]);
+  document.getElementById('stat-live').textContent=lR.count??0;
+  document.getElementById('stat-upcoming').textContent=uR.count??0;
+  document.getElementById('stat-matches').textContent=mR.count??0;
+  document.getElementById('stat-teams').textContent=tR.count??0;
+  document.getElementById('stat-players').textContent=pR.count??0;
+
+  const {data:live}=await sb.from('matches').select('id,minute,home_score,away_score,stage,home:home_team_id(name),away:away_team_id(name),tournament:tournament_id(name)').eq('status','live');
+  const liveEl=document.getElementById('dash-live');
+  if(!live?.length){liveEl.innerHTML='<div style="color:var(--silver2);font-size:13px;padding:.5rem 0;">No matches live right now.</div>';}
+  else liveEl.innerHTML=`<table class="data-table"><thead><tr><th>Match</th><th>Score</th><th></th></tr></thead><tbody>`+live.map(m=>`<tr><td><b>${m.home?.name||'?'} vs ${m.away?.name||'?'}</b><div style="font-size:11px;color:var(--silver2);">${m.tournament?.name||''}${m.stage?' · '+m.stage:''}</div></td><td style="font-family:Bebas Neue,sans-serif;font-size:18px;">${m.home_score}–${m.away_score} <span style="font-size:12px;color:var(--red);">${m.minute}'</span></td><td><button class="btn btn-primary btn-sm" onclick="document.getElementById('live-match-select').value='${m.id}';showPanel('live');loadLiveMatch();">Edit</button></td></tr>`).join('')+'</tbody></table>';
+
+  const today=new Date().toISOString().split('T')[0];
+  const {data:todayM}=await sb.from('matches').select('id,stage,status,match_time,home_score,away_score,home:home_team_id(name),away:away_team_id(name),tournament:tournament_id(name)').eq('match_date',today).order('match_time');
+  const todayEl=document.getElementById('dash-today');
+  const sb2={live:'<span class="badge live">Live</span>',upcoming:'<span class="badge upcoming">Upcoming</span>',ft:'<span class="badge ft">FT</span>',ht:'<span class="badge ht">HT</span>'};
+  if(!todayM?.length) todayEl.innerHTML='<div style="color:var(--silver2);font-size:13px;padding:.5rem 0;">No matches scheduled today.</div>';
+  else todayEl.innerHTML=`<table class="data-table"><thead><tr><th>Match</th><th>Time</th><th>Status</th><th>Score</th></tr></thead><tbody>`+todayM.map(m=>`<tr><td><b>${m.home?.name||'?'} vs ${m.away?.name||'?'}</b><div style="font-size:11px;color:var(--silver2);">${m.tournament?.name||''}</div></td><td style="font-size:12px;">${m.match_time||'—'}</td><td>${sb2[m.status]||''}</td><td style="font-family:Bebas Neue,sans-serif;font-size:15px;">${m.status==='upcoming'?'—':m.home_score+'–'+m.away_score}</td></tr>`).join('')+'</tbody></table>';
+
+  const {data:results}=await sb.from('matches').select('id,stage,home_score,away_score,match_date,home:home_team_id(name),away:away_team_id(name),tournament:tournament_id(name)').eq('status','ft').order('match_date',{ascending:false}).limit(5);
+  const rEl=document.getElementById('dash-results');
+  if(!results?.length) rEl.innerHTML='<div style="color:var(--silver2);font-size:13px;padding:.5rem 0;">No completed matches yet.</div>';
+  else rEl.innerHTML=`<table class="data-table"><thead><tr><th>Match</th><th>Result</th><th>Date</th></tr></thead><tbody>`+results.map(m=>`<tr><td><b>${m.home?.name||'?'} vs ${m.away?.name||'?'}</b><div style="font-size:11px;color:var(--silver2);">${m.tournament?.name||''}${m.stage?' · '+m.stage:''}</div></td><td style="font-family:Bebas Neue,sans-serif;font-size:18px;">${m.home_score}–${m.away_score}</td><td style="font-size:11px;color:var(--silver2);">${m.match_date||''}</td></tr>`).join('')+'</tbody></table>';
+}
+
+async function populateMatchSelect(){
+  const sel=document.getElementById('live-match-select');if(!sel)return;
+  const {data}=await sb.from('matches').select('id,stage,status,match_date,home:home_team_id(name),away:away_team_id(name),tournament:tournament_id(name)').in('status',['upcoming','live','ht']).order('match_date').order('match_time');
+  const saved=sel.value;
+  sel.innerHTML='<option value="">— Select a match —</option>';
+  if(data?.length){
+    data.forEach(m=>{
+      const label=`${m.home?.name||'?'} vs ${m.away?.name||'?'} — ${m.tournament?.name||''}${m.stage?' · '+m.stage:''} [${m.status.toUpperCase()}] ${m.match_date||''}`;
+      sel.innerHTML+=`<option value="${m.id}"${m.id===saved?' selected':''}>${label}</option>`;
+    });
+    document.getElementById('no-match-msg').style.display='none';
+  } else {
+    document.getElementById('no-match-msg').style.display='block';
+    document.getElementById('no-match-msg').textContent='No scheduled matches. Create one in Matches first.';
+  }
+}
+
+async function loadLiveMatch(){
+  const id=document.getElementById('live-match-select').value;
+  const ui=document.getElementById('live-match-ui');
+  const banner=document.getElementById('match-banner');
+  if(!id){ui.style.display='none';banner.style.display='none';return;}
+  const {data:m}=await sb.from('matches').select('*,home:home_team_id(id,name,code,badge_bg,badge_color),away:away_team_id(id,name,code,badge_bg,badge_color),tournament:tournament_id(name)').eq('id',id).single();
+  if(!m) return;
+  currentMatchId=id; matchStatus=m.status;
+  liveHomeScore=m.home_score; liveAwayScore=m.away_score;
+  clockSeconds=(m.minute||0)*60; clockHalf=matchStatus==='live'?(m.minute<=45?1:2):0;
+  document.getElementById('live-home-name').textContent=m.home?.name||'Home';
+  document.getElementById('live-away-name').textContent=m.away?.name||'Away';
+  document.getElementById('tl-team-home').textContent=m.home?.name||'Home';
+  document.getElementById('tl-team-away').textContent=m.away?.name||'Away';
+  document.getElementById('live-home-score').textContent=liveHomeScore;
+  document.getElementById('live-away-score').textContent=liveAwayScore;
+  ui.style.display=''; banner.style.display='';
+  document.getElementById('no-match-msg').style.display='none';
+  if(m.home?.id){const {data:hp}=await sb.from('players').select('id,name,position').eq('team_id',m.home.id).order('name');homePlayers=hp||[];}
+  if(m.away?.id){const {data:ap}=await sb.from('players').select('id,name,position').eq('team_id',m.away.id).order('name');awayPlayers=ap||[];}
+  if(m.stats){Object.keys(autoStats.home).forEach(k=>{autoStats.home[k]=m.stats[k]?.[0]||0;autoStats.away[k]=m.stats[k]?.[1]||0;});}
+  const {data:events}=await sb.from('timeline_events').select('*').eq('match_id',id).order('sort_order').order('created_at');
+  timelineEvents=(events||[]).map(e=>({type:e.type,event:e.event_label,detail:e.detail,side:e.side,min:e.minute,isPen:e.is_pen,highlightUrl:e.highlight_url,dbId:e.id}));
+  if(matchStatus==='live') startClock();
+  updateBanner(); updateClockDisplay(); renderTimeline(); renderMiniStats(); loadTeamPlayers();
+}
+
+async function loadTeamPlayers(){
+  const teamSel=document.getElementById('tl-team').value;
+  const players=teamSel==='home'?homePlayers:teamSel==='away'?awayPlayers:[];
+  const hasPlayers = players.length > 0;
+
+  // Player input fields: [fieldId, label, forGK]
+  const fields = [
+    {wrap:'goal-scorer-wrap', id:'goal-scorer', label:'Scorer', gk:false},
+    {wrap:'goal-assist-wrap', id:'goal-assist', label:'Assist by', gk:false},
+    {wrap:'card-player-wrap', id:'card-player', label:'Player', gk:false},
+    {wrap:'fk-taker-wrap', id:'fk-taker', label:'Taken by', gk:false},
+    {wrap:'shot-player-wrap', id:'shot-player', label:'Player', gk:false},
+    {wrap:'save-gk-wrap', id:'save-gk', label:'Goalkeeper', gk:true},
+    {wrap:'sub-off-wrap', id:'sub-off', label:'Player Off', gk:false},
+  ];
+
+  fields.forEach(f=>{
+    const wrap=document.getElementById(f.wrap);
+    if(!wrap) return;
+    const gkPlayers = f.gk ? players.filter(p=>p.position==='GK') : players;
+    const useDropdown = hasPlayers && (f.gk ? gkPlayers.length>0 : true);
+    if(useDropdown){
+      wrap.innerHTML=`<select class="form-select" id="${f.id}"><option value="">— Select —</option>${players.map(p=>`<option value="${p.id}">${p.name} (${p.position||'?'})</option>`).join('')}</select>`;
+    } else {
+      wrap.innerHTML=`<input class="form-input" id="${f.id}" placeholder="${f.label} name">`;
+    }
+  });
+}
+
+function updateEventForm(){
+  const t=document.getElementById('tl-type').value;
+  ['goal','card','freekick','shot','save','sub','highlight','generic'].forEach(g=>{const el=document.getElementById('fields-'+g);if(el)el.style.display='none';});
+  if(t==='goal') document.getElementById('fields-goal').style.display='';
+  else if(['yellow','red','foul'].includes(t)) document.getElementById('fields-card').style.display='';
+  else if(t==='freekick') document.getElementById('fields-freekick').style.display='';
+  else if(['shot','shot_on_target'].includes(t)) document.getElementById('fields-shot').style.display='';
+  else if(t==='save') document.getElementById('fields-save').style.display='';
+  else if(t==='sub') document.getElementById('fields-sub').style.display='';
+  else if(t==='highlight') document.getElementById('fields-highlight').style.display='';
+  else document.getElementById('fields-generic').style.display='';
+  loadTeamPlayers();
+}
+
+function tickClock(){
+  clockSeconds++;
+  updateClockDisplay();
+  // Sync to DB every 30 seconds
+  if(clockSeconds%30===0&&currentMatchId){
+    sb.from('matches').update({minute:Math.floor(clockSeconds/60)}).eq('id',currentMatchId).then(()=>{});
+  }
+}
+function stopClock(){
+  if(clockInterval){clearInterval(clockInterval);clockInterval=null;}
+}
+function startClock(){
+  stopClock(); // always clear before starting
+  clockInterval=setInterval(tickClock,1000);
+  console.log('Clock started, half:',clockHalf);
+}
+function getMinute(){
+  const total=Math.floor(clockSeconds/60);
+  if(matchStatus==='upcoming') return '00';
+  if(matchStatus==='ht') return '45';
+  if(matchStatus==='ft') return '90';
+  if(clockHalf===1) return total<=45?String(total).padStart(2,'0'):`45+${total-45}`;
+  const base=total-45; return base<=45?String(45+Math.max(0,base)):`90+${base-45}`;
+}
+function updateClockDisplay(){
+  const min=getMinute();
+  const el=document.getElementById('clock-display');
+  el.textContent=min+"'"; el.className='clock-time '+matchStatus;
+  const labels={upcoming:'Not Started',live:'Live',ht:'Half Time',ft:'Full Time'};
+  document.getElementById('clock-label').textContent=labels[matchStatus]||'';
+  document.getElementById('event-minute-display').textContent=min+"'";
+}
+
+function updateBanner(){
+  const banner=document.getElementById('match-banner');
+  const st=document.getElementById('banner-status');
+  const sub=document.getElementById('banner-sub');
+  const btns=document.getElementById('banner-btns');
+  if(!banner) return;
+  banner.className='match-banner '+matchStatus;
+  if(matchStatus==='upcoming'){
+    st.innerHTML='Match Not Started'; sub.textContent='Press Go Live when the referee blows the whistle';
+    btns.innerHTML=`<button class="btn btn-success" onclick="goLive()"><i class="ti ti-player-play"></i>Go Live</button>`;
+  }else if(matchStatus==='live'){
+    st.innerHTML=`<span class="live-dot-sm"></span>LIVE`; sub.textContent='Match in progress';
+    btns.innerHTML=`<button class="btn btn-gold" onclick="callHT()"><i class="ti ti-pause"></i>Half Time</button><button class="btn btn-danger" onclick="callFT()"><i class="ti ti-player-stop"></i>Full Time</button><button class="btn btn-ghost btn-sm" onclick="addStoppage()"><i class="ti ti-plus"></i>Stoppage</button>`;
+  }else if(matchStatus==='ht'){
+    st.innerHTML='Half Time'; sub.textContent='Press when 2nd half kicks off';
+    btns.innerHTML=`<button class="btn btn-success" onclick="startSecondHalf()"><i class="ti ti-player-play"></i>Start 2nd Half</button>`;
+  }else if(matchStatus==='ft'){
+    st.innerHTML='Full Time'; sub.textContent=`Final Score: ${liveHomeScore} – ${liveAwayScore}`;
+    btns.innerHTML='';
+  }
+}
+
+async function goLive(){
+  if(!currentMatchId) return;
+  matchStatus='live'; clockHalf=1; clockSeconds=0;
+  await sb.from('matches').update({status:'live',minute:0}).eq('id',currentMatchId);
+  startClock();
+  addSystemEvent('ko','Kick Off','Match underway');
+  updateBanner(); updateClockDisplay();
+  showToast('Match is now LIVE','success');
+  populateMatchSelect(); loadDashboard();
+}
+
+async function callHT(){
+  stopClock(); matchStatus='ht';
+  const min=Math.floor(clockSeconds/60),stoppage=Math.max(0,min-45);
+  await sb.from('matches').update({status:'ht',minute:min}).eq('id',currentMatchId);
+  addSystemEvent('ht','Half Time',`45+${stoppage} minutes played`);
+  if(stoppage>0) addSystemEvent('stoppage',`+${stoppage}' Added Time`,`${stoppage} min stoppage in first half`);
+  updateBanner(); updateClockDisplay(); renderTimeline();
+  showToast('Half Time','success');
+}
+
+async function startSecondHalf(){
+  matchStatus='live'; clockHalf=2;
+  await sb.from('matches').update({status:'live'}).eq('id',currentMatchId);
+  startClock();
+  addSystemEvent('so','2nd Half','Second half underway');
+  updateBanner(); showToast('2nd half started','success');
+}
+
+async function callFT(){
+  if(!confirm(`Confirm Full Time?\nFinal: ${liveHomeScore} – ${liveAwayScore}`)) return;
+  stopClock(); matchStatus='ft';
+  const min=Math.floor(clockSeconds/60),stoppage=Math.max(0,min-90);
+  await sb.from('matches').update({status:'ft',minute:min,home_score:liveHomeScore,away_score:liveAwayScore,stats:buildStats()}).eq('id',currentMatchId);
+  addSystemEvent('ft','Full Time',`Final: ${liveHomeScore}–${liveAwayScore}`);
+  if(stoppage>0) addSystemEvent('stoppage',`+${stoppage}' Added Time`,`${stoppage} min stoppage in second half`);
+  updateBanner(); updateClockDisplay(); renderTimeline();
+  showToast('Full Time! Match ended','success');
+  populateMatchSelect(); loadDashboard();
+}
+
+function addStoppage(){
+  const m=prompt('Stoppage time (minutes):');
+  if(!m||isNaN(m)) return;
+  addSystemEvent('stoppage',`+${m}' Added Time`,`${m} minute${m>1?'s':''} of stoppage time`);
+  showToast(`+${m}' stoppage added`,'success');
+}
+
+function buildStats(){
+  const h=autoStats.home,a=autoStats.away;
+  return {shots:[h.shots,a.shots],shotsOnTarget:[h.shotsOnTarget,a.shotsOnTarget],corners:[h.corners,a.corners],offsides:[h.offsides,a.offsides],fouls:[h.fouls,a.fouls],saves:[h.saves,a.saves],freekicks:[h.freekicks,a.freekicks],yellows:[h.yellows,a.yellows],reds:[h.reds,a.reds]};
+}
+
+async function adjustScore(side,delta){
+  if(side==='home'){liveHomeScore=Math.max(0,liveHomeScore+delta);document.getElementById('live-home-score').textContent=liveHomeScore;}
+  else{liveAwayScore=Math.max(0,liveAwayScore+delta);document.getElementById('live-away-score').textContent=liveAwayScore;}
+  if(currentMatchId) await sb.from('matches').update({home_score:liveHomeScore,away_score:liveAwayScore}).eq('id',currentMatchId);
+  showToast('Score updated','success');
+}
+
+const EV_ICONS={goal:'⚽',yellow:'🟨',red:'🟥',save:'🧤',corner:'📐',sub:'🔄',highlight:'🎬',freekick:'🟠',shot:'🎯',shot_on_target:'🎯',offside:'🚩',foul:'🟣',injury:'🩹',stoppage:'⏱',ko:'🟢',ht:'🟡',ft:'🔴',so:'🟢'};
+
+function getPlayerName(fieldId){
+  const el=document.getElementById(fieldId);
+  if(!el) return '';
+  // If it's a select element
+  if(el.tagName==='SELECT'){
+    if(!el.value) return '';
+    return el.options[el.selectedIndex]?.text?.split(' (')[0]||'';
+  }
+  // If it's a text input
+  return el.value.trim()||'';
+}
+
+async function addEvent(){
+  const type=document.getElementById('tl-type').value;
+  const teamSel=document.getElementById('tl-team').value;
+  const homeName=document.getElementById('live-home-name').textContent;
+  const awayName=document.getElementById('live-away-name').textContent;
+  const teamName=teamSel==='home'?homeName:teamSel==='away'?awayName:'';
+  const min=getMinute()+"'";
+  let label='',detail='',isPen=false,hlUrl='';
+
+  if(type==='goal'){
+    const scorer=getPlayerName('goal-scorer')||'Unknown';
+    const assist=getPlayerName('goal-assist');
+    const gtype=document.getElementById('goal-type').value;
+    isPen=gtype==='penalty';
+    label=`GOAL — ${scorer}${gtype?' ('+gtype.replace('_',' ').replace(/\b\w/g,c=>c.toUpperCase())+')':''}`;
+    detail=assist?`Assist: ${assist}`:'';
+    if(teamSel){autoStats[teamSel].goals++;autoStats[teamSel].shots++;autoStats[teamSel].shotsOnTarget++;}
+    if(teamSel==='home'){liveHomeScore++;document.getElementById('live-home-score').textContent=liveHomeScore;}
+    if(teamSel==='away'){liveAwayScore++;document.getElementById('live-away-score').textContent=liveAwayScore;}
+  }else if(type==='yellow'){
+    const pl=getPlayerName('card-player')||'Unknown';
+    label=`Yellow Card — ${pl}`; detail=document.getElementById('card-reason').value;
+    if(teamSel){autoStats[teamSel].yellows++;autoStats[teamSel].fouls++;}
+  }else if(type==='red'){
+    const pl=getPlayerName('card-player')||'Unknown';
+    label=`Red Card — ${pl}`; detail=document.getElementById('card-reason').value;
+    if(teamSel) autoStats[teamSel].reds++;
+  }else if(type==='foul'){
+    const pl=getPlayerName('card-player')||'Unknown';
+    label=`Foul — ${pl}`; detail=document.getElementById('card-reason').value;
+    if(teamSel) autoStats[teamSel].fouls++;
+  }else if(type==='freekick'){
+    const taker=getPlayerName('fk-taker')||'Unknown';
+    const outcome=document.getElementById('fk-outcome').value;
+    label=`Free Kick — ${taker}`; detail=`Outcome: ${outcome}`;
+    if(teamSel){autoStats[teamSel].freekicks++;if(['On Target','GOAL!'].includes(outcome))autoStats[teamSel].shotsOnTarget++;if(['On Target','GOAL!','Blocked','Wide / Over'].includes(outcome))autoStats[teamSel].shots++;}
+  }else if(type==='corner'){
+    label=`Corner — ${teamName}`;
+    if(teamSel) autoStats[teamSel].corners++;
+  }else if(type==='shot'){
+    const pl=getPlayerName('shot-player')||'Unknown';
+    label=`Shot — ${pl}`; detail=`Outcome: ${document.getElementById('shot-outcome').value}`;
+    if(teamSel) autoStats[teamSel].shots++;
+  }else if(type==='shot_on_target'){
+    const pl=getPlayerName('shot-player')||'Unknown';
+    label=`Shot on Target — ${pl}`; detail=`Outcome: ${document.getElementById('shot-outcome').value}`;
+    if(teamSel){autoStats[teamSel].shots++;autoStats[teamSel].shotsOnTarget++;}
+  }else if(type==='offside'){
+    label=`Offside — ${teamName}`;
+    if(teamSel) autoStats[teamSel].offsides++;
+  }else if(type==='save'){
+    const gk=getPlayerName('save-gk')||'Goalkeeper';
+    const from=document.getElementById('save-from').value;
+    label=`Save — ${gk}`; detail=from?`From: ${from}`:'';
+    const other=teamSel==='home'?'away':teamSel==='away'?'home':null;
+    if(other) autoStats[other].saves++;
+  }else if(type==='sub'){
+    const off=getPlayerName('sub-off'),on=document.getElementById('sub-on').value;
+    label=`Sub — ${off||'?'} ↔ ${on||'?'}`;
+  }else if(type==='highlight'){
+    label=`Highlight — ${document.getElementById('hl-desc').value||'Match moment'}`;
+    hlUrl=document.getElementById('hl-url').value;
+  }else if(type==='injury'){
+    label=`Injury — ${document.getElementById('generic-detail').value||'Player'}`;
+  }
+
+  const ev={type,event:label,detail,side:teamName,min,isPen,highlightUrl:hlUrl};
+  timelineEvents.push(ev);
+  if(currentMatchId){
+    await saveEventToDB(ev);
+    await sb.from('matches').update({home_score:liveHomeScore,away_score:liveAwayScore,minute:Math.floor(clockSeconds/60),stats:buildStats()}).eq('id',currentMatchId);
+  }
+  renderTimeline(); renderMiniStats();
+  showToast('Event added','success');
+}
+
+function addSystemEvent(type,label,detail){
+  const ev={type,event:label,detail,side:'',min:getMinute()+"'",system:true};
+  timelineEvents.push(ev);
+  if(currentMatchId) saveEventToDB(ev);
+}
+
+async function saveEventToDB(e){
+  if(!currentMatchId) return;
+  await sb.from('timeline_events').insert({match_id:currentMatchId,minute:e.min,type:e.type,event_label:e.event,detail:e.detail||null,side:e.side||null,is_pen:e.isPen||false,highlight_url:e.highlightUrl||null,sort_order:timelineEvents.length});
+}
+
+async function deleteEvent(dbId,idx){
+  if(!confirm('Remove this event?')) return;
+  if(dbId) await sb.from('timeline_events').delete().eq('id',dbId);
+  timelineEvents.splice(idx,1);
+  renderTimeline(); renderMiniStats();
+  showToast('Event removed','error');
+}
+
+function renderTimeline(){
+  const el=document.getElementById('live-timeline-list');if(!el)return;
+  if(!timelineEvents.length){el.innerHTML='<div style="color:var(--silver2);font-size:13px;text-align:center;padding:1rem;">No events yet</div>';return;}
+  el.innerHTML=[...timelineEvents].reverse().map((e,ri)=>{
+    const i=timelineEvents.length-1-ri;
+    return `<div class="tl-event-row">
+      <div class="tl-icon ${e.type}">${EV_ICONS[e.type]||''}</div>
+      <div class="tl-body">
+        <div class="tl-title">${e.event}${e.isPen?'<span style="background:rgba(240,180,41,.2);color:var(--gold);font-size:9px;padding:1px 5px;border-radius:3px;margin-left:4px;font-family:Barlow Condensed,sans-serif;font-weight:700;">PEN</span>':''}</div>
+        ${e.detail?`<div class="tl-detail">${e.detail}</div>`:''}
+        ${e.side&&!e.system?`<div class="tl-detail" style="color:var(--blue-l);">${e.side}</div>`:''}
+        ${e.highlightUrl?`<a href="${e.highlightUrl}" target="_blank" style="color:var(--purple);font-size:11px;">🎬 Watch</a>`:''}
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;">
+        <div class="tl-time">${e.min}</div>
+        ${!e.system?`<button class="tl-delete" onclick="deleteEvent('${e.dbId||''}',${i})"><i class="ti ti-trash"></i></button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderMiniStats(){
+  const el=document.getElementById('mini-stats');if(!el)return;
+  const h=autoStats.home,a=autoStats.away;
+  const rows=[['Goals',h.goals,a.goals],['Shots',h.shots,a.shots],['On Target',h.shotsOnTarget,a.shotsOnTarget],['Corners',h.corners,a.corners],['Offsides',h.offsides,a.offsides],['Fouls',h.fouls,a.fouls],['Saves',h.saves,a.saves],['Free Kicks',h.freekicks,a.freekicks],['Yellows',h.yellows,a.yellows],['Reds',h.reds,a.reds]];
+  el.innerHTML=rows.map(([l,hv,av])=>`<div class="mini-stat"><div class="mini-stat-home">${hv}</div><div class="mini-stat-lbl">${l}</div><div class="mini-stat-away">${av}</div></div>`).join('');
+}
+
+async function renderMatchesTable(){
+  const tbody=document.getElementById('matches-tbody');if(!tbody)return;
+  const {data}=await sb.from('matches').select('id,stage,status,match_date,home_score,away_score,home:home_team_id(name),away:away_team_id(name),tournament:tournament_id(name)').order('match_date',{ascending:false}).limit(50);
+  if(!data?.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--silver2);padding:1rem;">No matches yet.</td></tr>';return;}
+  const sb2={live:'<span class="badge live">Live</span>',upcoming:'<span class="badge upcoming">Upcoming</span>',ft:'<span class="badge ft">FT</span>',ht:'<span class="badge ht">HT</span>'};
+  tbody.innerHTML=data.map(m=>`<tr>
+    <td><b>${m.home?.name||'?'} vs ${m.away?.name||'?'}</b><div style="font-size:11px;color:var(--silver2);">${m.tournament?.name||''}${m.stage?' · '+m.stage:''}</div></td>
+    <td style="font-size:12px;color:var(--silver2);">${m.match_date||'—'}</td>
+    <td>${sb2[m.status]||''}</td>
+    <td style="font-family:Bebas Neue,sans-serif;font-size:16px;">${m.status==='upcoming'?'—':m.home_score+'–'+m.away_score}</td>
+    <td><div style="display:flex;gap:5px;">
+      <button class="btn btn-ghost btn-sm" onclick="editMatch('${m.id}')"><i class="ti ti-edit"></i></button>
+      <button class="btn btn-danger btn-sm" onclick="deleteRow('matches','${m.id}','match')"><i class="ti ti-trash"></i></button>
+    </div></td>
+  </tr>`).join('');
+}
+
+async function createMatch(){
+  const homeName=document.getElementById('nm-home').value;
+  const awayName=document.getElementById('nm-away').value;
+  const tourName=document.getElementById('nm-tournament').value;
+  if(!homeName||!awayName){showToast('Select home and away teams','error');return;}
+  const [{data:ht},{data:at},{data:tour}]=await Promise.all([
+    sb.from('teams').select('id').eq('name',homeName).single(),
+    sb.from('teams').select('id').eq('name',awayName).single(),
+    tourName?sb.from('tournaments').select('id').eq('name',tourName).single():{data:null}
+  ]);
+  if(!ht||!at){showToast('Teams not found — add them in Teams first','error');return;}
+  const {error}=await sb.from('matches').insert({tournament_id:tour?.id||null,stage:document.getElementById('nm-stage').value,home_team_id:ht.id,away_team_id:at.id,match_date:document.getElementById('nm-date').value||null,match_time:document.getElementById('nm-time').value||null,venue:document.getElementById('nm-venue').value||null,referee:document.getElementById('nm-ref').value||null,is_friendly:document.getElementById('nm-friendly').value==='true',status:'upcoming',home_score:0,away_score:0});
+  if(error){showToast('Error: '+error.message,'error');return;}
+  showToast('Match created','success');
+  renderMatchesTable();populateMatchSelect();populateDropdowns();loadDashboard();
+}
+
+async function editMatch(id){
+  const {data:m}=await sb.from('matches').select('*').eq('id',id).single();if(!m)return;
+  openModal('Edit Match',`
+    <div class="form-row"><div class="form-group"><label class="form-label">Home Score</label><input class="form-input" type="number" id="em-hs" value="${m.home_score}" min="0"></div><div class="form-group"><label class="form-label">Away Score</label><input class="form-input" type="number" id="em-as" value="${m.away_score}" min="0"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Status</label><select class="form-select" id="em-status"><option${m.status==='upcoming'?' selected':''}>upcoming</option><option${m.status==='live'?' selected':''}>live</option><option${m.status==='ht'?' selected':''}>ht</option><option${m.status==='ft'?' selected':''}>ft</option></select></div><div class="form-group"><label class="form-label">Date</label><input class="form-input" type="date" id="em-date" value="${m.match_date||''}"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Stage</label><input class="form-input" id="em-stage" value="${m.stage||''}"></div><div class="form-group"><label class="form-label">Venue</label><input class="form-input" id="em-venue" value="${m.venue||''}"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Referee</label><input class="form-input" id="em-ref" value="${m.referee||''}"></div><div class="form-group"><label class="form-label">Minute</label><input class="form-input" type="number" id="em-min" value="${m.minute||0}"></div></div>`,
+  async()=>{await sb.from('matches').update({home_score:+v('em-hs'),away_score:+v('em-as'),status:v('em-status'),match_date:v('em-date')||null,stage:v('em-stage'),venue:v('em-venue'),referee:v('em-ref'),minute:+v('em-min')}).eq('id',id);showToast('Match updated','success');renderMatchesTable();loadDashboard();});
+}
+
+async function renderTournamentsTable(){
+  const tbody=document.getElementById('tournaments-tbody');if(!tbody)return;
+  const {data}=await sb.from('tournaments').select('*').order('created_at',{ascending:false});
+  if(!data?.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--silver2);padding:1rem;">No tournaments yet.</td></tr>';return;}
+  const sb2={ongoing:'<span class="badge live">Ongoing</span>',upcoming:'<span class="badge upcoming">Upcoming</span>',done:'<span class="badge ft">Ended</span>'};
+  tbody.innerHTML=data.map(t=>`<tr>
+    <td><b>${t.name}</b><div style="font-size:11px;color:var(--silver2);">${t.format||''}</div></td>
+    <td>${t.num_teams||'?'}</td><td>${sb2[t.status]||''}</td>
+    <td><div style="display:flex;gap:6px;">
+      <button class="btn btn-ghost btn-sm" onclick="editTournament('${t.id}')"><i class="ti ti-edit"></i></button>
+      <button class="btn btn-danger btn-sm" onclick="deleteRow('tournaments','${t.id}','tournament')"><i class="ti ti-trash"></i></button>
+    </div></td>
+  </tr>`).join('');
+}
+
+async function createTournament(){
+  const name=document.getElementById('nt-name').value.trim();
+  if(!name){showToast('Name required','error');return;}
+  const {error}=await sb.from('tournaments').insert({name,format:document.getElementById('nt-format').value,start_date:document.getElementById('nt-start').value||null,end_date:document.getElementById('nt-end').value||null,num_teams:parseInt(document.getElementById('nt-teams').value)||0,description:document.getElementById('nt-desc').value||null,status:'upcoming'});
+  if(error){showToast('Error: '+error.message,'error');return;}
+  showToast('Tournament created','success');renderTournamentsTable();populateDropdowns();
+  document.getElementById('nt-name').value='';document.getElementById('nt-desc').value='';
+}
+
+async function editTournament(id){
+  const {data:t}=await sb.from('tournaments').select('*').eq('id',id).single();if(!t)return;
+  openModal('Edit Tournament',`
+    <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Name</label><input class="form-input" id="etn-name" value="${t.name}"></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Status</label><select class="form-select" id="etn-status"><option value="upcoming"${t.status==='upcoming'?' selected':''}>Upcoming</option><option value="ongoing"${t.status==='ongoing'?' selected':''}>Ongoing</option><option value="done"${t.status==='done'?' selected':''}>Done</option></select></div><div class="form-group"><label class="form-label">Teams</label><input class="form-input" type="number" id="etn-teams" value="${t.num_teams||0}"></div></div>
+    <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="etn-desc">${t.description||''}</textarea></div>`,
+  async()=>{await sb.from('tournaments').update({name:v('etn-name'),status:v('etn-status'),num_teams:+v('etn-teams'),description:v('etn-desc')}).eq('id',id);showToast('Updated','success');renderTournamentsTable();populateDropdowns();});
+}
+
+async function renderStandingsContent(tid){
+  const el=document.getElementById('standings-content');
+  if(!tid){el.innerHTML='<div class="empty-panel"><i class="ti ti-table"></i><b>Select a Tournament</b></div>';return;}
+  el.innerHTML='<div class="empty-panel"><i class="ti ti-loader"></i><b>Loading</b></div>';
+  const [{data:groups},{data:brackets}]=await Promise.all([
+    sb.from('tournament_groups').select('*,standings:group_standings(*,team:team_id(name,code,badge_bg,badge_color))').eq('tournament_id',tid).order('sort_order'),
+    sb.from('bracket_matches').select('*,match:match_id(home_score,away_score,status,home:home_team_id(name),away:away_team_id(name))').eq('tournament_id',tid).order('round_order').order('match_order')
+  ]);
+  let html='';
+  if(groups?.length){
+    groups.forEach(g=>{
+      const rows=[...(g.standings||[])].sort((a,b)=>b.pts-a.pts||(b.gf-b.ga)-(a.gf-a.ga));
+      html+=`<div class="card"><div class="card-title" style="justify-content:space-between;"><span><i class="ti ti-table"></i>&nbsp;${g.name}</span><div style="display:flex;gap:6px;"><button class="btn btn-ghost btn-sm" onclick="editGroupModal('${g.id}','${tid}')"><i class="ti ti-edit"></i>Edit</button><button class="btn btn-danger btn-sm" onclick="deleteRow('tournament_groups','${g.id}','group')"><i class="ti ti-trash"></i></button></div></div>
+      <div style="overflow-x:auto;"><table class="data-table" style="min-width:460px;"><thead><tr><th>#</th><th>Team</th><th>MP</th><th>W</th><th>D</th><th>L</th><th>GF</th><th>GA</th><th>GD</th><th>Pts</th><th></th></tr></thead><tbody>`;
+      rows.forEach((s,i)=>{const t=s.team||{},gd=s.gf-s.ga;html+=`<tr><td style="color:${i<2?'var(--blue-l)':'var(--silver2)'};">${i+1}</td><td><div style="display:flex;align-items:center;gap:6px;"><div style="width:20px;height:20px;border-radius:3px;background:${t.badge_bg||'#0d2a5c'};color:${t.badge_color||'#fff'};display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:8px;">${t.code||'?'}</div>${t.name||'?'}</div></td><td>${s.mp}</td><td style="color:var(--green);">${s.w}</td><td style="color:var(--silver2);">${s.d}</td><td style="color:var(--red);">${s.l}</td><td>${s.gf}</td><td>${s.ga}</td><td style="color:${gd>0?'var(--green)':gd<0?'var(--red)':'var(--silver2)'};">${gd>0?'+':''}${gd}</td><td style="font-family:Bebas Neue,sans-serif;font-size:18px;">${s.pts}</td><td><button class="btn btn-ghost btn-sm" onclick="editStandingRow('${s.id}','${tid}')"><i class="ti ti-edit"></i></button></td></tr>`;});
+      html+=`</tbody></table></div></div>`;
+    });
+  }
+  if(brackets?.length){
+    const rounds={};brackets.forEach(b=>{if(!rounds[b.round_name])rounds[b.round_name]={order:b.round_order,items:[]};rounds[b.round_name].items.push(b);});
+    const sortedRounds=Object.entries(rounds).sort((a,b)=>a[1].order-b[1].order);
+    html+=`<div class="card"><div class="card-title"><span><i class="ti ti-tournament"></i>&nbsp;Knockout Bracket</span></div><div class="bracket-wrap"><div class="bracket">`;
+    sortedRounds.forEach(([rname,rdata])=>{
+      html+=`<div class="b-round"><div class="b-round-title">${rname}</div>`;
+      rdata.items.sort((a,b)=>a.match_order-b.match_order).forEach(bm=>{
+        const m=bm.match,ft=m?.status==='ft',hW=ft&&m.home_score>m.away_score,aW=ft&&m.away_score>m.home_score;
+        html+=`<div class="b-match" onclick="editBracketMatch('${bm.id}','${tid}')">
+          <div class="b-team${hW?' winner':bm.home_label==='TBD'?' tbd':''}">${m?.home?.name||bm.home_label} <span>${ft?m.home_score:'–'}</span></div>
+          <div class="b-team${aW?' winner':bm.away_label==='TBD'?' tbd':''}">${m?.away?.name||bm.away_label} <span>${ft?m.away_score:'–'}</span></div>
+        </div>`;
+      });
+      html+=`</div>`;
+    });
+    html+=`</div></div></div>`;
+  }
+  if(!html) html='<div class="empty-panel"><i class="ti ti-table"></i><b>No Tables or Bracket Yet</b><span>Use the buttons above to add.</span></div>';
+  el.innerHTML=html;
+}
+
+async function addGroupModal(){
+  const tid=document.getElementById('st-sel').value;
+  if(!tid){showToast('Select a tournament first','error');return;}
+  openModal('Add Points Table',`<div class="form-group"><label class="form-label">Group Name</label><input class="form-input" id="ag-name" placeholder="Group A / Final Standings"></div>`,
+  async()=>{
+    const {error}=await sb.from('tournament_groups').insert({tournament_id:tid,name:v('ag-name')||'Group A',sort_order:0});
+    if(error){showToast('Error: '+error.message,'error');return;}
+    showToast('Group added','success');renderStandingsContent(tid);
+  });
+}
+
+async function editGroupModal(gid,tid){
+  const {data:teams}=await sb.from('teams').select('id,name').order('name');
+  openModal('Edit Group / Add Team',`
+    <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Group Name</label><input class="form-input" id="eg-name" placeholder="Group A"></div>
+    <div class="divider"></div>
+    <div style="font-family:Barlow Condensed,sans-serif;font-size:12px;font-weight:700;letter-spacing:1px;color:var(--blue-l);margin-bottom:8px;">ADD TEAM TO TABLE</div>
+    <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Team</label><select class="form-select" id="eg-team-sel"><option value="">— Select —</option>${(teams||[]).map(t=>`<option value="${t.id}">${t.name}</option>`).join('')}</select></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">MP</label><input class="form-input" type="number" id="eg-mp" value="0"></div>
+      <div class="form-group"><label class="form-label">W</label><input class="form-input" type="number" id="eg-w" value="0"></div>
+      <div class="form-group"><label class="form-label">D</label><input class="form-input" type="number" id="eg-d" value="0"></div>
+      <div class="form-group"><label class="form-label">L</label><input class="form-input" type="number" id="eg-l" value="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">GF</label><input class="form-input" type="number" id="eg-gf" value="0"></div>
+      <div class="form-group"><label class="form-label">GA</label><input class="form-input" type="number" id="eg-ga" value="0"></div>
+      <div class="form-group"><label class="form-label">Pts</label><input class="form-input" type="number" id="eg-pts" value="0"></div>
+    </div>`,
+  async()=>{
+    if(v('eg-name')) await sb.from('tournament_groups').update({name:v('eg-name')}).eq('id',gid);
+    if(v('eg-team-sel')){const {error}=await sb.from('group_standings').insert({group_id:gid,team_id:v('eg-team-sel'),mp:+v('eg-mp'),w:+v('eg-w'),d:+v('eg-d'),l:+v('eg-l'),gf:+v('eg-gf'),ga:+v('eg-ga'),pts:+v('eg-pts')});if(error){showToast('Error: '+error.message,'error');return;}}
+    showToast('Saved','success');renderStandingsContent(tid||document.getElementById('st-sel').value);
+  });
+}
+
+async function editStandingRow(sid,tid){
+  const {data:s}=await sb.from('group_standings').select('*,team:team_id(name)').eq('id',sid).single();if(!s)return;
+  openModal(`Edit — ${s.team?.name||'Team'}`,`
+    <div class="form-row"><div class="form-group"><label class="form-label">MP</label><input class="form-input" type="number" id="es-mp" value="${s.mp}"></div><div class="form-group"><label class="form-label">W</label><input class="form-input" type="number" id="es-w" value="${s.w}"></div><div class="form-group"><label class="form-label">D</label><input class="form-input" type="number" id="es-d" value="${s.d}"></div><div class="form-group"><label class="form-label">L</label><input class="form-input" type="number" id="es-l" value="${s.l}"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">GF</label><input class="form-input" type="number" id="es-gf" value="${s.gf}"></div><div class="form-group"><label class="form-label">GA</label><input class="form-input" type="number" id="es-ga" value="${s.ga}"></div><div class="form-group"><label class="form-label">Pts</label><input class="form-input" type="number" id="es-pts" value="${s.pts}"></div></div>`,
+  async()=>{await sb.from('group_standings').update({mp:+v('es-mp'),w:+v('es-w'),d:+v('es-d'),l:+v('es-l'),gf:+v('es-gf'),ga:+v('es-ga'),pts:+v('es-pts')}).eq('id',sid);showToast('Updated','success');renderStandingsContent(tid||document.getElementById('st-sel').value);});
+}
+
+async function addBracketModal(){
+  const tid=document.getElementById('st-sel').value;
+  if(!tid){showToast('Select a tournament first','error');return;}
+  const {data:matches}=await sb.from('matches').select('id,stage,home:home_team_id(name),away:away_team_id(name)').eq('tournament_id',tid);
+  openModal('Add Bracket Match',`
+    <div class="form-row"><div class="form-group"><label class="form-label">Round Name</label><input class="form-input" id="ab-round" placeholder="Quarter Finals"></div><div class="form-group"><label class="form-label">Round Order</label><input class="form-input" type="number" id="ab-ro" value="1" min="1"></div><div class="form-group"><label class="form-label">Match Order</label><input class="form-input" type="number" id="ab-mo" value="1" min="1"></div></div>
+    <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Link Match</label><select class="form-select" id="ab-match"><option value="">— TBD —</option>${(matches||[]).map(m=>`<option value="${m.id}">${m.home?.name||'?'} vs ${m.away?.name||'?'} (${m.stage||''})</option>`).join('')}</select></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Home Label</label><input class="form-input" id="ab-hl" placeholder="TBD"></div><div class="form-group"><label class="form-label">Away Label</label><input class="form-input" id="ab-al" placeholder="TBD"></div></div>`,
+  async()=>{
+    const {error}=await sb.from('bracket_matches').insert({tournament_id:tid,round_name:v('ab-round')||'Round',round_order:+v('ab-ro'),match_order:+v('ab-mo'),match_id:v('ab-match')||null,home_label:v('ab-hl')||'TBD',away_label:v('ab-al')||'TBD'});
+    if(error){showToast('Error: '+error.message,'error');return;}
+    showToast('Bracket match added','success');renderStandingsContent(tid);
+  });
+}
+
+async function editBracketMatch(bid,tid){
+  const {data:bm}=await sb.from('bracket_matches').select('*').eq('id',bid).single();if(!bm)return;
+  openModal('Edit Bracket Match',`
+    <div class="form-row"><div class="form-group"><label class="form-label">Home Label</label><input class="form-input" id="ebm-hl" value="${bm.home_label||'TBD'}"></div><div class="form-group"><label class="form-label">Away Label</label><input class="form-input" id="ebm-al" value="${bm.away_label||'TBD'}"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Round Order</label><input class="form-input" type="number" id="ebm-ro" value="${bm.round_order||1}"></div><div class="form-group"><label class="form-label">Match Order</label><input class="form-input" type="number" id="ebm-mo" value="${bm.match_order||1}"></div></div>
+    <button class="btn btn-danger btn-sm" onclick="deleteRow('bracket_matches','${bid}','bracket match');closeModal();" style="margin-top:8px;"><i class="ti ti-trash"></i>Remove from Bracket</button>`,
+  async()=>{await sb.from('bracket_matches').update({home_label:v('ebm-hl'),away_label:v('ebm-al'),round_order:+v('ebm-ro'),match_order:+v('ebm-mo')}).eq('id',bid);showToast('Updated','success');renderStandingsContent(tid||document.getElementById('st-sel').value);});
+}
+
+async function loadHistory(){
+  const el=document.getElementById('history-content');if(!el)return;
+  const typeF=document.getElementById('hist-type')?.value;
+  const tourF=document.getElementById('hist-tour')?.value;
+  let query=sb.from('matches').select('id,stage,is_friendly,home_score,away_score,match_date,home:home_team_id(name,code,badge_bg,badge_color),away:away_team_id(name,code,badge_bg,badge_color),tournament:tournament_id(name)').eq('status','ft').order('match_date',{ascending:false});
+  if(typeF!==''&&typeF!==undefined) query=query.eq('is_friendly',typeF==='true');
+  if(tourF) query=query.eq('tournament_id',tourF);
+  const {data}=await query;
+  if(!data?.length){el.innerHTML='<div class="empty-panel"><i class="ti ti-history"></i><b>No History Yet</b>Completed matches will appear here.</div>';return;}
+  let html='',lastDate='';
+  data.forEach(m=>{
+    if(m.match_date!==lastDate){html+=`<div style="font-family:Barlow Condensed,sans-serif;font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue-l);margin:1rem 0 .5rem;">${m.match_date||'Unknown date'}</div>`;lastDate=m.match_date;}
+    const h=m.home||{},a=m.away||{};
+    html+=`<div style="background:var(--navy2);border:1px solid var(--border);border-radius:8px;padding:.75rem 1rem;margin-bottom:8px;display:flex;align-items:center;gap:10px;">
+      <div style="flex:1;font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:700;">${h.name||'?'}</div>
+      <div style="font-family:Bebas Neue,sans-serif;font-size:20px;min-width:60px;text-align:center;">${m.home_score} – ${m.away_score}</div>
+      <div style="flex:1;text-align:right;font-family:Barlow Condensed,sans-serif;font-size:14px;font-weight:700;">${a.name||'?'}</div>
+      <button class="btn btn-ghost btn-sm" onclick="editMatch('${m.id}')"><i class="ti ti-edit"></i></button>
+    </div>`;
+  });
+  el.innerHTML=html;
+}
+
+async function renderTeamsTable(){
+  const tbody=document.getElementById('teams-tbody');if(!tbody)return;
+  const {data}=await sb.from('teams').select('*').order('name');
+  if(!data?.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--silver2);padding:1rem;">No teams yet.</td></tr>';return;}
+  tbody.innerHTML=data.map(t=>`<tr>
+    <td><div style="display:flex;align-items:center;gap:8px;"><div style="width:28px;height:28px;border-radius:5px;background:${t.badge_bg};color:${t.badge_color};display:flex;align-items:center;justify-content:center;font-family:Bebas Neue,sans-serif;font-size:10px;">${t.code}</div><b>${t.name}</b></div></td>
+    <td style="font-size:12px;">${t.type||'hostel'}</td>
+    <td style="font-size:12px;">${t.captain||'—'}</td>
+    <td><div style="display:flex;gap:6px;">
+      <button class="btn btn-ghost btn-sm" onclick="editTeam('${t.id}')"><i class="ti ti-edit"></i></button>
+      <button class="btn btn-danger btn-sm" onclick="deleteRow('teams','${t.id}','team')"><i class="ti ti-trash"></i></button>
+    </div></td>
+  </tr>`).join('');
+}
+
+async function addTeam(){
+  const name=document.getElementById('nt2-name').value.trim();
+  const code=document.getElementById('nt2-code').value.trim();
+  if(!name||!code){showToast('Name and code required','error');return;}
+  const {error}=await sb.from('teams').insert({name,code:code.toUpperCase(),type:document.getElementById('nt2-type').value,founded_year:parseInt(document.getElementById('nt2-founded').value)||null,captain:document.getElementById('nt2-captain').value||null,badge_bg:document.getElementById('nt2-bg').value,badge_color:document.getElementById('nt2-col').value,bio:document.getElementById('nt2-bio').value||null});
+  if(error){showToast('Error: '+error.message,'error');return;}
+  showToast('Team added','success');renderTeamsTable();populateDropdowns();
+  document.getElementById('nt2-name').value='';document.getElementById('nt2-code').value='';
+}
+
+async function editTeam(id){
+  const {data:t}=await sb.from('teams').select('*').eq('id',id).single();if(!t)return;
+  openModal(`Edit — ${t.name}`,`
+    <div class="form-row"><div class="form-group" style="flex:2;"><label class="form-label">Name</label><input class="form-input" id="et-name" value="${t.name}"></div><div class="form-group"><label class="form-label">Code</label><input class="form-input" id="et-code" value="${t.code}" maxlength="4"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Type</label><select class="form-select" id="et-type"><option value="hostel"${t.type==='hostel'?' selected':''}>Hostel</option><option value="batch"${t.type==='batch'?' selected':''}>Batch</option><option value="mixed"${t.type==='mixed'?' selected':''}>Mixed</option><option value="external"${t.type==='external'?' selected':''}>External</option></select></div><div class="form-group"><label class="form-label">Captain</label><input class="form-input" id="et-captain" value="${t.captain||''}"></div><div class="form-group"><label class="form-label">Founded</label><input class="form-input" type="number" id="et-founded" value="${t.founded_year||''}"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Badge BG</label><input class="form-input" type="color" id="et-bg" value="${t.badge_bg||'#0d2a5c'}" style="padding:4px;height:42px;"></div><div class="form-group"><label class="form-label">Badge Text</label><input class="form-input" type="color" id="et-col" value="${t.badge_color||'#7ab0f5'}" style="padding:4px;height:42px;"></div></div>
+    <div class="form-group"><label class="form-label">Bio</label><textarea class="form-textarea" id="et-bio">${t.bio||''}</textarea></div>`,
+  async()=>{await sb.from('teams').update({name:v('et-name'),code:v('et-code').toUpperCase(),type:v('et-type'),captain:v('et-captain'),founded_year:parseInt(v('et-founded'))||null,badge_bg:v('et-bg'),badge_color:v('et-col'),bio:v('et-bio')}).eq('id',id);showToast('Team updated','success');renderTeamsTable();populateDropdowns();});
+}
+
+async function renderPlayersTable(){
+  const tbody=document.getElementById('players-tbody');if(!tbody)return;
+  const tf=document.getElementById('p-filter-team')?.value||'';
+  const pf=document.getElementById('p-filter-pos')?.value||'';
+  const {data}=await sb.from('players').select('*,team:team_id(name,badge_bg,badge_color)').order('goals',{ascending:false});
+  let list=data||[];
+  if(tf) list=list.filter(p=>p.team?.name===tf);
+  if(pf) list=list.filter(p=>p.position===pf);
+  if(!list.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;color:var(--silver2);padding:1rem;">No players yet.</td></tr>';return;}
+  const posC={GK:'pos-gk',DEF:'pos-def',MID:'pos-mid',FWD:'pos-fwd'};
+  tbody.innerHTML=list.map(p=>`<tr>
+    <td><b>${p.name}</b><div style="font-size:11px;color:var(--silver2);">Batch ${p.batch_year||'?'}</div></td>
+    <td style="font-size:12px;">${p.team?.name||'—'}</td>
+    <td><span class="tag ${posC[p.position]||'pos-mid'}">${p.position||'?'}</span></td>
+    <td style="font-family:Bebas Neue,sans-serif;color:var(--blue-l);">${p.goals}</td>
+    <td style="font-family:Bebas Neue,sans-serif;color:var(--blue-l);">${p.assists}</td>
+    <td>${p.matches_played}</td>
+    <td><span style="color:var(--gold);">${p.yellows}Y</span> <span style="color:var(--red);">${p.reds}R</span></td>
+    <td><div style="display:flex;gap:5px;">
+      <button class="btn btn-ghost btn-sm" onclick="editPlayer('${p.id}')"><i class="ti ti-edit"></i></button>
+      <button class="btn btn-danger btn-sm" onclick="deleteRow('players','${p.id}','player')"><i class="ti ti-trash"></i></button>
+    </div></td>
+  </tr>`).join('');
+}
+
+async function addPlayer(){
+  const name=document.getElementById('np-name').value.trim();
+  if(!name){showToast('Name required','error');return;}
+  const teamName=document.getElementById('np-team').value;
+  const {data:team}=teamName?await sb.from('teams').select('id').eq('name',teamName).single():{data:null};
+  const {error}=await sb.from('players').insert({name,team_id:team?.id||null,position:document.getElementById('np-pos').value,batch_year:parseInt(document.getElementById('np-batch').value)||null,jersey_no:parseInt(document.getElementById('np-jersey').value)||null,goals:parseInt(document.getElementById('np-goals').value)||0,assists:parseInt(document.getElementById('np-assists').value)||0,matches_played:parseInt(document.getElementById('np-matches').value)||0,yellows:parseInt(document.getElementById('np-yellows').value)||0,reds:parseInt(document.getElementById('np-reds').value)||0,bio:document.getElementById('np-bio').value||null});
+  if(error){showToast('Error: '+error.message,'error');return;}
+  showToast('Player added','success');renderPlayersTable();populateDropdowns();
+  document.getElementById('np-name').value='';document.getElementById('np-bio').value='';
+}
+
+async function editPlayer(id){
+  const {data:p}=await sb.from('players').select('*,team:team_id(name)').eq('id',id).single();if(!p)return;
+  const {data:teams}=await sb.from('teams').select('id,name').order('name');
+  openModal(`Edit — ${p.name}`,`
+    <div class="form-row"><div class="form-group" style="flex:2;"><label class="form-label">Name</label><input class="form-input" id="ep-name" value="${p.name}"></div><div class="form-group"><label class="form-label">Team</label><select class="form-select" id="ep-team"><option value="">— No team —</option>${(teams||[]).map(t=>`<option value="${t.id}"${t.id===p.team_id?' selected':''}>${t.name}</option>`).join('')}</select></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Pos</label><select class="form-select" id="ep-pos"><option${p.position==='GK'?' selected':''}>GK</option><option${p.position==='DEF'?' selected':''}>DEF</option><option${p.position==='MID'?' selected':''}>MID</option><option${p.position==='FWD'?' selected':''}>FWD</option></select></div><div class="form-group"><label class="form-label">Batch</label><input class="form-input" type="number" id="ep-batch" value="${p.batch_year||''}"></div><div class="form-group"><label class="form-label">Jersey</label><input class="form-input" type="number" id="ep-jersey" value="${p.jersey_no||''}"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Goals</label><input class="form-input" type="number" id="ep-goals" value="${p.goals}"></div><div class="form-group"><label class="form-label">Assists</label><input class="form-input" type="number" id="ep-assists" value="${p.assists}"></div><div class="form-group"><label class="form-label">Matches</label><input class="form-input" type="number" id="ep-matches" value="${p.matches_played}"></div><div class="form-group"><label class="form-label">Won</label><input class="form-input" type="number" id="ep-won" value="${p.matches_won||0}"></div><div class="form-group"><label class="form-label">Lost</label><input class="form-input" type="number" id="ep-lost" value="${p.matches_lost||0}"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Yellows</label><input class="form-input" type="number" id="ep-yellows" value="${p.yellows}"></div><div class="form-group"><label class="form-label">Reds</label><input class="form-input" type="number" id="ep-reds" value="${p.reds}"></div><div class="form-group"><label class="form-label">Pen Goals</label><input class="form-input" type="number" id="ep-pen" value="${p.pen_goals||0}"></div></div>
+    <div class="form-group"><label class="form-label">Bio</label><textarea class="form-textarea" id="ep-bio">${p.bio||''}</textarea></div>`,
+  async()=>{await sb.from('players').update({name:v('ep-name'),team_id:v('ep-team')||null,position:v('ep-pos'),batch_year:parseInt(v('ep-batch'))||null,jersey_no:parseInt(v('ep-jersey'))||null,goals:+v('ep-goals'),assists:+v('ep-assists'),matches_played:+v('ep-matches'),matches_won:+v('ep-won'),matches_lost:+v('ep-lost'),yellows:+v('ep-yellows'),reds:+v('ep-reds'),pen_goals:+v('ep-pen'),bio:v('ep-bio')}).eq('id',id);showToast('Player updated','success');renderPlayersTable();populateDropdowns();});
+}
+
+async function renderNewsTable(){
+  const tbody=document.getElementById('news-tbody');if(!tbody)return;
+  const {data}=await sb.from('news').select('*').order('created_at',{ascending:false}).limit(30);
+  if(!data?.length){tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--silver2);padding:1rem;">No posts yet.</td></tr>';return;}
+  tbody.innerHTML=data.map(n=>`<tr>
+    <td><b>${n.headline}</b></td>
+    <td style="font-size:11px;">${n.tag||'News'}</td>
+    <td>${n.published?'<span style="color:var(--green);font-size:12px;">Published</span>':'<span style="color:var(--silver2);font-size:12px;">Draft</span>'}</td>
+    <td style="font-size:11px;color:var(--silver2);">${new Date(n.created_at).toLocaleDateString()}</td>
+    <td><div style="display:flex;gap:6px;">
+      <button class="btn btn-ghost btn-sm" onclick="editNews('${n.id}')"><i class="ti ti-edit"></i></button>
+      <button class="btn btn-danger btn-sm" onclick="deleteRow('news','${n.id}','post')"><i class="ti ti-trash"></i></button>
+    </div></td>
+  </tr>`).join('');
+}
+
+async function publishNews(){
+  const headline=document.getElementById('nn-headline').value.trim();
+  if(!headline){showToast('Headline required','error');return;}
+  const {error}=await sb.from('news').insert({headline,tag:document.getElementById('nn-tag').value,body:document.getElementById('nn-body').value||null,published:true});
+  if(error){showToast('Error: '+error.message,'error');return;}
+  showToast('Published','success');renderNewsTable();
+  document.getElementById('nn-headline').value='';document.getElementById('nn-body').value='';
+}
+
+async function saveDraft(){
+  const headline=document.getElementById('nn-headline').value.trim();
+  if(!headline){showToast('Headline required','error');return;}
+  const {error}=await sb.from('news').insert({headline,tag:document.getElementById('nn-tag').value,body:document.getElementById('nn-body').value||null,published:false});
+  if(error){showToast('Error: '+error.message,'error');return;}
+  showToast('Draft saved','success');renderNewsTable();
+}
+
+async function editNews(id){
+  const {data:n}=await sb.from('news').select('*').eq('id',id).single();if(!n)return;
+  openModal('Edit Post',`
+    <div class="form-group" style="margin-bottom:10px;"><label class="form-label">Headline</label><input class="form-input" id="en-headline" value="${n.headline}"></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Tag</label><select class="form-select" id="en-tag"><option${n.tag==='Match Report'?' selected':''}>Match Report</option><option${n.tag==='Match Preview'?' selected':''}>Match Preview</option><option${n.tag==='Announcement'?' selected':''}>Announcement</option><option${n.tag==='Squad News'?' selected':''}>Squad News</option></select></div><div class="form-group"><label class="form-label">Published</label><select class="form-select" id="en-pub"><option value="true"${n.published?' selected':''}>Published</option><option value="false"${!n.published?' selected':''}>Draft</option></select></div></div>
+    <div class="form-group"><label class="form-label">Body</label><textarea class="form-textarea" style="min-height:100px;" id="en-body">${n.body||''}</textarea></div>`,
+  async()=>{await sb.from('news').update({headline:v('en-headline'),tag:v('en-tag'),body:v('en-body'),published:v('en-pub')==='true'}).eq('id',id);showToast('Post updated','success');renderNewsTable();});
+}
+
+async function renderUsersTable(){
+  const tbody=document.getElementById('users-tbody');if(!tbody)return;
+  if(currentRole!=='super_admin'){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--silver2);padding:1rem;">Admin access only.</td></tr>';return;}
+  const {data}=await sb.from('admins').select('*').order('created_at');
+  if(!data?.length){tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--silver2);padding:1rem;">No admins found.</td></tr>';return;}
+  const roleBadge={super_admin:'<span class="badge admin-role">Admin</span>',coordinator:'<span class="badge coord-role">Coordinator</span>',match_admin:'<span class="badge ref-role">Referee</span>'};
+  tbody.innerHTML=data.map(u=>`<tr>
+    <td style="font-size:13px;">${u.email}</td>
+    <td>${roleBadge[u.role]||u.role}</td>
+    <td style="font-size:12px;color:var(--silver2);">${u.assigned_match_id||'—'}</td>
+    <td><div style="display:flex;gap:6px;">
+      ${u.user_id!==currentUser.id&&u.user_id!=='00000000-0000-0000-0000-000000000000'?
+        `<button class="btn btn-ghost btn-sm" onclick="editUserRole('${u.id}','${u.role}')"><i class="ti ti-edit"></i></button><button class="btn btn-danger btn-sm" onclick="removeAdmin('${u.id}','${u.email}')"><i class="ti ti-trash"></i></button>`:
+        u.user_id===currentUser.id?'<span style="color:var(--silver2);font-size:12px;">You</span>':
+        `<button class="btn btn-ghost btn-sm" onclick="editUserRole('${u.id}','${u.role}')"><i class="ti ti-edit"></i></button><button class="btn btn-danger btn-sm" onclick="removeAdmin('${u.id}','${u.email}')"><i class="ti ti-trash"></i></button>`
+      }
+    </div></td>
+  </tr>`).join('');
+}
+
+async function inviteAdmin(){
+  if(currentRole!=='super_admin'){showToast('Admin access only','error');return;}
+  const email=document.getElementById('invite-email').value.trim();
+  const role=document.getElementById('invite-role').value;
+  const matchId=document.getElementById('assign-match-sel').value||null;
+  if(!email){showToast('Enter an email address','error');return;}
+  const {data:existing}=await sb.from('admins').select('id').eq('email',email);
+  if(existing?.length){showToast('This email already has admin access','error');return;}
+  const {error}=await sb.from('admins').insert({email,role,assigned_match_id:matchId,user_id:'00000000-0000-0000-0000-000000000000'});
+  if(error){showToast('Error: '+error.message,'error');return;}
+  showToast(`${ROLE_LABELS[role]} access granted to ${email}. They must sign up at the admin portal with this email.`,'success');
+  document.getElementById('invite-email').value='';
+  renderUsersTable();
+}
+
+async function editUserRole(adminId,currentRoleVal){
+  openModal('Change Role',`
+    <div style="margin-bottom:12px;font-size:13px;color:var(--silver2);">Role change takes effect on their next login.</div>
+    <div class="form-group"><label class="form-label">New Role</label>
+      <select class="form-select" id="eu-role">
+        <option value="super_admin"${currentRoleVal==='super_admin'?' selected':''}>Admin — full access</option>
+        <option value="coordinator"${currentRoleVal==='coordinator'?' selected':''}>Coordinator — all except users</option>
+        <option value="match_admin"${currentRoleVal==='match_admin'?' selected':''}>Referee — live editor only</option>
+      </select>
+    </div>`,
+  async()=>{
+    const {error}=await sb.from('admins').update({role:v('eu-role')}).eq('id',adminId);
+    if(error){showToast('Error: '+error.message,'error');return;}
+    showToast('Role updated','success');renderUsersTable();
+  });
+}
+
+async function removeAdmin(adminId,email){
+  if(!confirm(`Remove admin access for ${email}?\nThey will be unable to log in.`)) return;
+  const {error}=await sb.from('admins').delete().eq('id',adminId);
+  if(error){showToast('Error: '+error.message,'error');return;}
+  showToast(`${email} removed`,'error');renderUsersTable();
+}
+
+function toggleMatchAssign(){
+  const r=document.getElementById('invite-role').value;
+  document.getElementById('assign-match-row').style.display=r==='match_admin'?'flex':'none';
+}
+
+async function populateDropdowns(){
+  const [{data:teams},{data:tours},{data:matches}]=await Promise.all([
+    sb.from('teams').select('id,name').order('name'),
+    sb.from('tournaments').select('id,name').order('name'),
+    sb.from('matches').select('id,stage,home:home_team_id(name),away:away_team_id(name)').in('status',['upcoming','live']).order('match_date'),
+  ]);
+  const teamOpts=(teams||[]).map(t=>`<option>${t.name}</option>`).join('');
+  ['nm-home','nm-away'].forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML='<option value="">— Select —</option>'+teamOpts;});
+  const npTeam=document.getElementById('np-team');if(npTeam)npTeam.innerHTML='<option value="">— No team —</option>'+teamOpts;
+  const pft=document.getElementById('p-filter-team');if(pft)pft.innerHTML='<option value="">All Teams</option>'+teamOpts;
+  const tourOpts='<option value="">— Select —</option>'+(tours||[]).map(t=>`<option>${t.name}</option>`).join('');
+  const nmTour=document.getElementById('nm-tournament');if(nmTour)nmTour.innerHTML=tourOpts;
+  const stSel=document.getElementById('st-sel');if(stSel)stSel.innerHTML='<option value="">— Select tournament —</option>'+(tours||[]).map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  const histTour=document.getElementById('hist-tour');if(histTour)histTour.innerHTML='<option value="">All</option>'+(tours||[]).map(t=>`<option value="${t.id}">${t.name}</option>`).join('');
+  const assignSel=document.getElementById('assign-match-sel');if(assignSel)assignSel.innerHTML='<option value="">— Any —</option>'+(matches||[]).map(m=>`<option value="${m.id}">${m.home?.name||'?'} vs ${m.away?.name||'?'}${m.stage?' · '+m.stage:''}</option>`).join('');
+}
+
+async function undoLastEvent(){
+  // Find last non-system event
+  let lastIdx = -1;
+  for(let i=timelineEvents.length-1;i>=0;i--){
+    if(!timelineEvents[i].system){ lastIdx=i; break; }
+  }
+  if(lastIdx===-1){ showToast('No events to undo','error'); return; }
+  const e = timelineEvents[lastIdx];
+  if(!confirm(`Undo: "${e.event}"?`)) return;
+
+  // Reverse stat effects
+  const side = e.side===document.getElementById('live-home-name').textContent?'home':e.side===document.getElementById('live-away-name').textContent?'away':null;
+  if(side){
+    if(e.type==='goal'){ autoStats[side].goals=Math.max(0,autoStats[side].goals-1); autoStats[side].shots=Math.max(0,autoStats[side].shots-1); autoStats[side].shotsOnTarget=Math.max(0,autoStats[side].shotsOnTarget-1);
+      if(side==='home'){liveHomeScore=Math.max(0,liveHomeScore-1);document.getElementById('live-home-score').textContent=liveHomeScore;}
+      else{liveAwayScore=Math.max(0,liveAwayScore-1);document.getElementById('live-away-score').textContent=liveAwayScore;}
+      if(currentMatchId) await sb.from('matches').update({home_score:liveHomeScore,away_score:liveAwayScore}).eq('id',currentMatchId);
+    }
+    if(e.type==='yellow'){autoStats[side].yellows=Math.max(0,autoStats[side].yellows-1);autoStats[side].fouls=Math.max(0,autoStats[side].fouls-1);}
+    if(e.type==='red') autoStats[side].reds=Math.max(0,autoStats[side].reds-1);
+    if(e.type==='foul') autoStats[side].fouls=Math.max(0,autoStats[side].fouls-1);
+    if(e.type==='corner') autoStats[side].corners=Math.max(0,autoStats[side].corners-1);
+    if(e.type==='offside') autoStats[side].offsides=Math.max(0,autoStats[side].offsides-1);
+    if(e.type==='freekick') autoStats[side].freekicks=Math.max(0,autoStats[side].freekicks-1);
+    if(['shot','shot_on_target'].includes(e.type)) autoStats[side].shots=Math.max(0,autoStats[side].shots-1);
+    if(e.type==='shot_on_target') autoStats[side].shotsOnTarget=Math.max(0,autoStats[side].shotsOnTarget-1);
+    if(e.type==='save'){ const other=side==='home'?'away':'home'; autoStats[other].saves=Math.max(0,autoStats[other].saves-1); }
+  }
+
+  // Delete from DB
+  if(e.dbId) await sb.from('timeline_events').delete().eq('id',e.dbId);
+  timelineEvents.splice(lastIdx,1);
+
+  // Update stats in DB
+  if(currentMatchId) await sb.from('matches').update({stats:buildStats()}).eq('id',currentMatchId);
+
+  renderTimeline(); renderMiniStats();
+  showToast('Event undone','success');
+}
+
+async function resetMatch(){
+  if(!currentMatchId){ showToast('No match selected','error'); return; }
+  if(!confirm('Reset ALL events and scores for this match?
+
+This deletes the entire timeline and sets score to 0–0.
+
+This CANNOT be undone.')) return;
+
+  // Delete all timeline events for this match
+  await sb.from('timeline_events').delete().eq('match_id',currentMatchId);
+
+  // Reset scores and stats
+  liveHomeScore=0; liveAwayScore=0;
+  autoStats={home:{goals:0,shots:0,shotsOnTarget:0,corners:0,offsides:0,fouls:0,saves:0,freekicks:0,yellows:0,reds:0},away:{goals:0,shots:0,shotsOnTarget:0,corners:0,offsides:0,fouls:0,saves:0,freekicks:0,yellows:0,reds:0}};
+  timelineEvents=[];
+
+  await sb.from('matches').update({home_score:0,away_score:0,stats:{shots:[0,0],shotsOnTarget:[0,0],corners:[0,0],offsides:[0,0],fouls:[0,0],saves:[0,0],freekicks:[0,0],yellows:[0,0],reds:[0,0]},minute:0}).eq('id',currentMatchId);
+
+  document.getElementById('live-home-score').textContent='0';
+  document.getElementById('live-away-score').textContent='0';
+  renderTimeline(); renderMiniStats();
+  showToast('Match reset to 0–0','error');
+}
+
+async function deleteRow(table,id,label){
+  if(!confirm(`Delete this ${label}? This cannot be undone.`)) return;
+  const {error}=await sb.from(table).delete().eq('id',id);
+  if(error){showToast('Error: '+error.message,'error');return;}
+  showToast(`${label} deleted`,'error');
+  renderMatchesTable();renderTeamsTable();renderPlayersTable();renderNewsTable();renderTournamentsTable();loadDashboard();populateDropdowns();populateMatchSelect();
+}
+
+async function undoLastEvent(){
+  // Find last non-system event
+  let lastIdx = -1;
+  for(let i = timelineEvents.length-1; i>=0; i--){
+    if(!timelineEvents[i].system){ lastIdx=i; break; }
+  }
+  if(lastIdx === -1){ showToast('No events to undo','error'); return; }
+  const e = timelineEvents[lastIdx];
+  if(!confirm(`Undo: ${e.event}?`)) return;
+
+  // Reverse stats
+  const side = e.side === document.getElementById('live-home-name')?.textContent ? 'home'
+             : e.side === document.getElementById('live-away-name')?.textContent ? 'away' : null;
+  if(side){
+    if(e.type==='goal'){
+      autoStats[side].goals = Math.max(0, autoStats[side].goals-1);
+      autoStats[side].shots = Math.max(0, autoStats[side].shots-1);
+      autoStats[side].shotsOnTarget = Math.max(0, autoStats[side].shotsOnTarget-1);
+      if(side==='home'){ liveHomeScore=Math.max(0,liveHomeScore-1); document.getElementById('live-home-score').textContent=liveHomeScore; }
+      else{ liveAwayScore=Math.max(0,liveAwayScore-1); document.getElementById('live-away-score').textContent=liveAwayScore; }
+    } else if(e.type==='yellow'){ autoStats[side].yellows=Math.max(0,autoStats[side].yellows-1); autoStats[side].fouls=Math.max(0,autoStats[side].fouls-1); }
+    else if(e.type==='red'){ autoStats[side].reds=Math.max(0,autoStats[side].reds-1); }
+    else if(e.type==='foul'){ autoStats[side].fouls=Math.max(0,autoStats[side].fouls-1); }
+    else if(e.type==='corner'){ autoStats[side].corners=Math.max(0,autoStats[side].corners-1); }
+    else if(e.type==='shot'){ autoStats[side].shots=Math.max(0,autoStats[side].shots-1); }
+    else if(e.type==='shot_on_target'){ autoStats[side].shots=Math.max(0,autoStats[side].shots-1); autoStats[side].shotsOnTarget=Math.max(0,autoStats[side].shotsOnTarget-1); }
+    else if(e.type==='offside'){ autoStats[side].offsides=Math.max(0,autoStats[side].offsides-1); }
+    else if(e.type==='freekick'){ autoStats[side].freekicks=Math.max(0,autoStats[side].freekicks-1); }
+    else if(e.type==='save'){ const other=side==='home'?'away':'home'; autoStats[other].saves=Math.max(0,autoStats[other].saves-1); }
+  }
+
+  // Delete from DB
+  if(e.dbId) await sb.from('timeline_events').delete().eq('id',e.dbId);
+
+  // Update score+stats in DB
+  if(currentMatchId) await sb.from('matches').update({home_score:liveHomeScore,away_score:liveAwayScore,stats:buildStats()}).eq('id',currentMatchId);
+
+  timelineEvents.splice(lastIdx,1);
+  renderTimeline(); renderMiniStats();
+  showToast('Event undone','success');
+}
+
+async function resetMatchEvents(){
+  if(!confirm('Reset ALL events for this match? This will clear the entire timeline and reset all stats to 0. This cannot be undone.')) return;
+  if(!confirm('Are you absolutely sure?')) return;
+
+  // Delete all timeline events from DB
+  if(currentMatchId) await sb.from('timeline_events').delete().eq('match_id',currentMatchId);
+
+  // Reset scores and stats
+  liveHomeScore=0; liveAwayScore=0;
+  Object.keys(autoStats.home).forEach(k=>{ autoStats.home[k]=0; autoStats.away[k]=0; });
+  timelineEvents=[];
+
+  document.getElementById('live-home-score').textContent=0;
+  document.getElementById('live-away-score').textContent=0;
+
+  if(currentMatchId) await sb.from('matches').update({home_score:0,away_score:0,stats:buildStats()}).eq('id',currentMatchId);
+
+  renderTimeline(); renderMiniStats();
+  showToast('Match events reset','error');
+}
+
+async function undoLastEvent(){
+  // Find last non-system event
+  let lastIdx=-1;
+  for(let i=timelineEvents.length-1;i>=0;i--){
+    if(!timelineEvents[i].system){lastIdx=i;break;}
+  }
+  if(lastIdx===-1){showToast('No events to undo','error');return;}
+  const e=timelineEvents[lastIdx];
+  if(!confirm(`Undo this event?\n"${e.event}"`)) return;
+
+  // Reverse auto-stats
+  const homeName=document.getElementById('live-home-name')?.textContent;
+  const awayName=document.getElementById('live-away-name')?.textContent;
+  const side=e.side===homeName?'home':e.side===awayName?'away':null;
+  if(side){
+    const h=autoStats[side];
+    if(e.type==='goal'){
+      h.goals=Math.max(0,h.goals-1);h.shots=Math.max(0,h.shots-1);h.shotsOnTarget=Math.max(0,h.shotsOnTarget-1);
+      if(side==='home'){liveHomeScore=Math.max(0,liveHomeScore-1);document.getElementById('live-home-score').textContent=liveHomeScore;}
+      else{liveAwayScore=Math.max(0,liveAwayScore-1);document.getElementById('live-away-score').textContent=liveAwayScore;}
+    }else if(e.type==='yellow'){h.yellows=Math.max(0,h.yellows-1);h.fouls=Math.max(0,h.fouls-1);}
+    else if(e.type==='red'){h.reds=Math.max(0,h.reds-1);}
+    else if(e.type==='foul'){h.fouls=Math.max(0,h.fouls-1);}
+    else if(e.type==='corner'){h.corners=Math.max(0,h.corners-1);}
+    else if(e.type==='shot'){h.shots=Math.max(0,h.shots-1);}
+    else if(e.type==='shot_on_target'){h.shots=Math.max(0,h.shots-1);h.shotsOnTarget=Math.max(0,h.shotsOnTarget-1);}
+    else if(e.type==='offside'){h.offsides=Math.max(0,h.offsides-1);}
+    else if(e.type==='freekick'){h.freekicks=Math.max(0,h.freekicks-1);}
+    else if(e.type==='save'){const other=side==='home'?'away':'home';autoStats[other].saves=Math.max(0,autoStats[other].saves-1);}
+  }
+
+  // Delete from DB
+  if(e.dbId) await sb.from('timeline_events').delete().eq('id',e.dbId);
+  // Sync stats and score to DB
+  if(currentMatchId) await sb.from('matches').update({home_score:liveHomeScore,away_score:liveAwayScore,stats:buildStats()}).eq('id',currentMatchId);
+
+  timelineEvents.splice(lastIdx,1);
+  renderTimeline();renderMiniStats();
+  showToast('Event undone ✓','success');
+}
+
+async function resetMatchEvents(){
+  if(!confirm('Clear ALL events and reset all stats to 0?\nThis cannot be undone.')) return;
+  if(!confirm('Final confirmation — reset this match?')) return;
+  if(currentMatchId) await sb.from('timeline_events').delete().eq('match_id',currentMatchId);
+  liveHomeScore=0;liveAwayScore=0;
+  Object.keys(autoStats.home).forEach(k=>{autoStats.home[k]=0;autoStats.away[k]=0;});
+  timelineEvents=[];
+  document.getElementById('live-home-score').textContent=0;
+  document.getElementById('live-away-score').textContent=0;
+  if(currentMatchId) await sb.from('matches').update({home_score:0,away_score:0,stats:buildStats()}).eq('id',currentMatchId);
+  renderTimeline();renderMiniStats();
+  showToast('Match events reset','error');
+}
+
+function openModal(title,bodyHtml,onSave){
+  document.getElementById('edit-modal-title').textContent=title;
+  document.getElementById('edit-modal-body').innerHTML=bodyHtml;
+  modalSaveFn=onSave;
+  document.getElementById('edit-modal-overlay').classList.add('open');
+}
+async function saveModal(){if(modalSaveFn)await modalSaveFn();closeModal();}
+function closeModal(){document.getElementById('edit-modal-overlay').classList.remove('open');modalSaveFn=null;}
+
+function v(id){return document.getElementById(id)?.value||'';}
+function showToast(msg,type='success'){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.className=`toast ${type} show`;
+  setTimeout(()=>t.className='toast',3200);
+}
+</script>
+</body>
+</html>
